@@ -1,15 +1,21 @@
-fn main() {
-    println!("Hello, world!");
 
-    let loc = dna::Location::parse("chr1:100000-100100");
+#[macro_use] extern crate rocket;
 
-    println!("{}", loc);
+use rocket::serde::{Serialize, json::Json};
+ 
+mod tests;
 
-    let dir:&str="/ifs/scratch/cancer/Lab_RDF/ngs/dna/hg19" ;
+#[derive(Serialize)]
+pub struct Message {
+    pub message: String,
+}
 
-    let dna_db : dna::DNA = dna::DNA::new(dir);
+#[get("/")]
+fn index() -> Json<Message> {
+    Json(Message{message:"cake".to_string()})
+}
 
-    let dna = dna_db.get_dna(&loc, true, true);
-
-    println!("{}",dna);
+#[launch]
+fn rocket() -> _ {
+    rocket::build().mount("/", routes![index])
 }
