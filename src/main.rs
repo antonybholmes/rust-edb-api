@@ -1,7 +1,10 @@
 #[macro_use]
 extern crate rocket;
 
-use rocket::{http::Status, serde::{json::Json, Serialize}};
+use rocket::{
+    http::Status,
+    serde::{json::Json, Serialize},
+};
 
 mod tests;
 
@@ -16,14 +19,14 @@ pub struct DNA {
     pub dna: String,
 }
 
-#[get("/about", format="json")]
+#[get("/about")]
 fn about_route() -> Json<Message> {
     Json(Message {
         message: "cake".to_string(),
     })
 }
 
-#[get("/", format="json")]
+#[get("/")]
 fn dna_route() -> Json<DNA> {
     let loc = dna::Location::parse("chr1:100000-100100");
 
@@ -39,7 +42,7 @@ fn dna_route() -> Json<DNA> {
     });
 }
 
-#[get("/within", format="json")]
+#[get("/within")]
 fn within_genes_route() -> Json<loctogene::Features> {
     let loc: dna::Location = dna::Location::parse("chr3:187721377-187745725");
 
@@ -58,13 +61,7 @@ fn within_genes_route() -> Json<loctogene::Features> {
     return Json(records);
 }
 
-#[derive(Debug)]
-struct ApiResponse<T> {
-    pub json: Json<T>,
-    pub status: Status,
-}
-
-#[get("/closest", format="json")]
+#[get("/closest")]
 fn closest_genes_route() -> Json<loctogene::Features> {
     let loc: dna::Location = dna::Location::parse("chr3:187721377-187745725");
 
