@@ -1,7 +1,14 @@
 #[cfg(test)]
+
+
 #[test]
-fn test_dna() {
-    let loc = dna::Location::parse("chr1:100000-100100");
+fn test_dna()  {
+ 
+    let res: Result<dna::Location, String> = dna::Location::parse("chr1:100000-100100");
+
+    assert!(!res.is_err());
+
+    let loc = res.unwrap();
 
     println!("{}", loc);
 
@@ -9,7 +16,11 @@ fn test_dna() {
 
     let dna_db: dna::DNA = dna::DNA::new(dir);
 
-    let dna = dna_db.get_dna(&loc, true, true);
+    let res = dna_db.get_dna(&loc, true, true);
+
+    assert!(!res.is_err());
+
+    let dna: String = res.unwrap();
 
     println!("{}", dna);
 }
