@@ -1,10 +1,16 @@
 #[macro_use]
 extern crate rocket;
 
+use std::env::consts::ARCH;
+
 use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
+
+const NAME: &str = "edb-api";
+const VERSION: &str = "1.0.0";
+const COPYRIGHT: &str = "Copyright (C) 2024 Antony Holmes";
 
 mod tests;
 
@@ -14,15 +20,26 @@ pub struct MessageResp {
 }
 
 #[derive(Serialize)]
+pub struct AboutJsonResp {
+    pub name: String,
+    pub version: String,
+    pub copyright: String,
+    pub arch: String,
+}
+
+#[derive(Serialize)]
 pub struct DNAJsonResp {
     pub location: String,
     pub dna: String,
 }
 
 #[get("/about")]
-fn about_route() -> Json<MessageResp> {
-    Json(MessageResp {
-        message: "cake".to_string(),
+fn about_route() -> Json<AboutJsonResp> {
+    Json(AboutJsonResp {
+        name: NAME.to_string(),
+        version: VERSION.to_string(),
+        copyright: COPYRIGHT.to_string(),
+        arch: ARCH.to_string(),
     })
 }
 
