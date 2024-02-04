@@ -1,4 +1,4 @@
-pub fn parse_loc_from_route(
+pub fn parse_loc_from_query(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,
@@ -6,17 +6,17 @@ pub fn parse_loc_from_route(
     default_start: u32,
     default_end: u32,
 ) -> Result<dna::Location, String> {
-    let c = match chr {
+    let c: &str = match chr {
         Some(c) => c,
         None => default_chr,
     };
 
-    let s = match start {
+    let s: u32 = match start {
         Some(s) => s,
         None => default_start,
     };
 
-    let e = match end {
+    let e: u32 = match end {
         Some(e) => e,
         None => default_end,
     };
@@ -27,4 +27,13 @@ pub fn parse_loc_from_route(
     };
 
     Ok(loc)
+}
+
+pub fn parse_assembly_from_query(assembly: Option<&str>) -> String {
+    let a: &str = match assembly {
+        Some(assembly) => assembly,
+        None => "grch38",
+    };
+
+    return a.to_string();
 }

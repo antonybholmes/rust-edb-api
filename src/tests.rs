@@ -12,9 +12,8 @@ fn test_dna()  {
 
     println!("{}", loc);
 
-    let dir: &str = "/ifs/scratch/cancer/Lab_RDF/ngs/dna/hg19";
-
-    let dna_db: dna::DNA = dna::DNA::new(dir);
+ 
+    let dna_db: dna::DNA = dna::DNA::new("/ifs/scratch/cancer/Lab_RDF/ngs/dna/hg19".to_string());
 
     let res = dna_db.get_dna(&loc, true, true);
 

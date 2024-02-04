@@ -7,7 +7,7 @@ use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
-use utils::parse_loc_from_route;
+use utils::{parse_assembly_from_query, parse_loc_from_query};
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
@@ -45,34 +45,33 @@ fn about_route() -> Json<AboutJsonResp> {
     })
 }
 
-
-
-#[get("/?<chr>&<start>&<end>&<rev>&<comp>")]
+#[get("/?<chr>&<start>&<end>&<assembly>&<rev>&<comp>")]
 fn dna_route(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,
+    assembly: Option<&str>,
     rev: Option<bool>,
     comp: Option<bool>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
+    let loc: dna::Location = match utils::parse_loc_from_query(chr, start, end, "chr1", 100000, 100100) {
         Ok(loc) => loc,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    let r = match rev {
+    let a: String = parse_assembly_from_query(assembly);
+
+    let r: bool = match rev {
         Some(r) => r,
         None => false,
     };
 
-    let rc = match comp {
+    let rc: bool = match comp {
         Some(rc) => rc,
         None => false,
     };
 
-    let dir: &str = "/ifs/scratch/cancer/Lab_RDF/ngs/dna/hg19";
-
-    let dna_db: dna::DNA = dna::DNA::new(dir);
+    let dna_db: dna::DNA = dna::DNA::new(format!("/data/dna/{}", a));
 
     let dna: String = match dna_db.get_dna(&loc, r, rc) {
         Ok(dna) => dna,
@@ -93,20 +92,17 @@ fn within_genes_route(
     assembly: Option<&str>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
-        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
+        match parse_loc_from_query(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let a = match assembly {
-        Some(assembly) => assembly,
-        None => "grch38",
-    };
+    let a: String = parse_assembly_from_query(assembly);
 
     let l: u32 = 1;
 
     let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(&format!("/data/loctogene/{}.db", a)) {
+        match loctogene::Loctogene::new(format!("/data/loctogene/{}.db", a)) {
             Ok(db) => db,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
@@ -117,7 +113,6 @@ fn within_genes_route(
     };
 
     Ok(Json(records))
-    //Err(BadRequest(Json(MessageResp { message: "ckk".to_string() })))
 }
 
 #[get("/closest?<chr>&<start>&<end>&<assembly>&<n>")]
@@ -129,17 +124,17 @@ fn closest_genes_route(
     n: Option<u16>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
-        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
+        match parse_loc_from_query(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let a = match assembly {
+    let a: &str = match assembly {
         Some(assembly) => assembly,
         None => "grch38",
     };
 
-    let nn = match n {
+    let nn: u16 = match n {
         Some(nn) => nn,
         None => 10,
     };
