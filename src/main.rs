@@ -78,10 +78,10 @@ fn dna_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    return Ok(Json(DNAJsonResp {
+    Ok(Json(DNAJsonResp {
         location: loc.to_string(),
         dna,
-    }));
+    }))
 }
 
 #[get("/within?<chr>&<start>&<end>&<assembly>")]
@@ -142,7 +142,7 @@ fn closest_genes_route(
     let l: u32 = 1;
 
     let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(&format!("/data/loctogene/{}.db", a)) {
+        match loctogene::Loctogene::new(format!("/data/loctogene/{}.db", a)) {
             Ok(db) => db,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
@@ -152,7 +152,7 @@ fn closest_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    return Ok(Json(records));
+    Ok(Json(records))
 }
 
 #[launch]
