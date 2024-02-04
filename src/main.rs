@@ -94,13 +94,13 @@ fn within_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    // let records: loctogene::Features = match genesdb.get_genes_within(&loc, 1) {
-    //     Ok(records) => records,
-    //     Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-    // };
+    let records: loctogene::Features = match genesdb.get_genes_within(&loc, 1) {
+        Ok(records) => records,
+        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+    };
 
-    //Ok(Json(Features{ location: "".to_string(), level: "".to_string(), features: Vec::<FeatureRecord>::new() }))
-    Err(BadRequest(Json(MessageResp { message: "ckk".to_string() })))
+    Ok(Json(records))
+    //Err(BadRequest(Json(MessageResp { message: "ckk".to_string() })))
 }
 
 #[get("/closest")]
