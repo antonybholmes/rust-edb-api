@@ -7,12 +7,14 @@ use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
+use utils::parse_loc_from_route;
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
 const COPYRIGHT: &'static str = "Copyright (C) 2024 Antony Holmes";
 
 mod tests;
+mod utils;
 
 #[derive(Serialize)]
 pub struct MessageResp {
@@ -43,36 +45,7 @@ fn about_route() -> Json<AboutJsonResp> {
     })
 }
 
-fn parse_loc_from_route(
-    chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
-    default_chr: &str,
-    default_start: u32,
-    default_end: u32,
-) -> Result<dna::Location, String> {
-    let c = match chr {
-        Some(c) => c,
-        None => default_chr,
-    };
 
-    let s = match start {
-        Some(s) => s,
-        None => default_start,
-    };
-
-    let e = match end {
-        Some(e) => e,
-        None => default_end,
-    };
-
-    let loc: dna::Location = match dna::Location::new(c, s, e) {
-        Ok(loc) => loc,
-        Err(err) => return Err(err),
-    };
-
-    Ok(loc)
-}
 
 #[get("/?<chr>&<start>&<end>&<rev>&<comp>")]
 fn dna_route(
@@ -82,7 +55,7 @@ fn dna_route(
     rev: Option<bool>,
     comp: Option<bool>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
+    let loc: dna::Location = match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
         Ok(loc) => loc,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
