@@ -8,9 +8,9 @@ use rocket::{
     serde::{json::Json, Serialize},
 };
 
-const NAME: &str = "edb-api";
-const VERSION: &str = "1.0.0";
-const COPYRIGHT: &str = "Copyright (C) 2024 Antony Holmes";
+const NAME: &'static str = "edb-api";
+const VERSION: &'static str = "1.0.0";
+const COPYRIGHT: &'static str = "Copyright (C) 2024 Antony Holmes";
 
 mod tests;
 
@@ -21,10 +21,10 @@ pub struct MessageResp {
 
 #[derive(Serialize)]
 pub struct AboutJsonResp {
-    pub name: String,
-    pub version: String,
-    pub copyright: String,
-    pub arch: String,
+    pub name: &'static str,
+    pub version: &'static str,
+    pub copyright: &'static str,
+    pub arch: &'static str,
 }
 
 #[derive(Serialize)]
@@ -36,10 +36,10 @@ pub struct DNAJsonResp {
 #[get("/about")]
 fn about_route() -> Json<AboutJsonResp> {
     Json(AboutJsonResp {
-        name: NAME.to_string(),
-        version: VERSION.to_string(),
-        copyright: COPYRIGHT.to_string(),
-        arch: ARCH.to_string(),
+        name: NAME,
+        version: VERSION,
+        copyright: COPYRIGHT,
+        arch: ARCH,
     })
 }
 
@@ -47,20 +47,23 @@ fn parse_loc_from_route(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,
+    default_chr: &str,
+    default_start: u32,
+    default_end: u32,
 ) -> Result<dna::Location, String> {
     let c = match chr {
         Some(c) => c,
-        None => "chr3",
+        None => default_chr,
     };
 
     let s = match start {
         Some(s) => s,
-        None => 187721377,
+        None => default_start,
     };
 
     let e = match end {
         Some(e) => e,
-        None => 187721377,
+        None => default_end,
     };
 
     let loc: dna::Location = match dna::Location::new(c, s, e) {
@@ -79,7 +82,7 @@ fn dna_route(
     rev: Option<bool>,
     comp: Option<bool>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match parse_loc_from_route(chr, start, end) {
+    let loc: dna::Location = match parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
         Ok(loc) => loc,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
@@ -116,10 +119,11 @@ fn within_genes_route(
     end: Option<u32>,
     assembly: Option<&str>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match parse_loc_from_route(chr, start, end) {
-        Ok(loc) => loc,
-        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-    };
+    let loc: dna::Location =
+        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
+            Ok(loc) => loc,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
 
     let a = match assembly {
         Some(assembly) => assembly,
@@ -151,10 +155,11 @@ fn closest_genes_route(
     assembly: Option<&str>,
     n: Option<u16>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match parse_loc_from_route(chr, start, end) {
-        Ok(loc) => loc,
-        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-    };
+    let loc: dna::Location =
+        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
+            Ok(loc) => loc,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
 
     let a = match assembly {
         Some(assembly) => assembly,
