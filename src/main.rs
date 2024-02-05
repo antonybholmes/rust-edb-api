@@ -117,12 +117,13 @@ fn dna_route(
     }))
 }
 
-#[get("/within?<chr>&<start>&<end>&<assembly>")]
+#[get("/within?<chr>&<start>&<end>&<assembly>&<level>")]
 fn within_genes_route(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,
     assembly: Option<&str>,
+    level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
@@ -132,7 +133,10 @@ fn within_genes_route(
 
     let a: String = parse_assembly_from_query(assembly);
 
-    let l: u32 = 1;
+    let l: loctogene::Level= match level {
+        Some(l) => loctogene::Level::from(l),
+        None => loctogene::Level::Gene,
+    };
 
     let genesdb: loctogene::Loctogene =
         match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
@@ -140,7 +144,7 @@ fn within_genes_route(
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let records: loctogene::Features = match genesdb.get_genes_within(&loc, l) {
+    let records: loctogene::Features = match genesdb.get_genes_within(loc, l) {
         Ok(records) => records,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
@@ -148,13 +152,14 @@ fn within_genes_route(
     Ok(Json(GenesJsonResp { data: records }))
 }
 
-#[get("/closest?<chr>&<start>&<end>&<assembly>&<n>")]
+#[get("/closest?<chr>&<start>&<end>&<assembly>&<n>&<level>")]
 fn closest_genes_route(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,
     assembly: Option<&str>,
     n: Option<u16>,
+    level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
@@ -172,7 +177,15 @@ fn closest_genes_route(
         None => 10,
     };
 
-    let l: u32 = 1;
+    let nn: u16 = match n {
+        Some(nn) => nn,
+        None => 10,
+    };
+
+    let l: loctogene::Level= match level {
+        Some(l) => loctogene::Level::from(l),
+        None => loctogene::Level::Gene,
+    };
 
     let genesdb: loctogene::Loctogene =
         match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
@@ -180,7 +193,7 @@ fn closest_genes_route(
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let records: loctogene::Features = match genesdb.get_closest_genes(&loc, nn, l) {
+    let records: loctogene::Features = match genesdb.get_closest_genes(loc, nn, l) {
         Ok(records) => records,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
