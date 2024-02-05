@@ -7,7 +7,7 @@ use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
-use utils::{parse_assembly_from_query, parse_loc_from_query};
+use utils::{parse_assembly_from_query, parse_bool, parse_loc_from_query};
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
@@ -51,8 +51,8 @@ fn dna_route(
     start: Option<u32>,
     end: Option<u32>,
     assembly: Option<&str>,
-    rev: Option<bool>,
-    comp: Option<bool>,
+    rev: Option<&str>,
+    comp: Option<&str>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location = match utils::parse_loc_from_query(chr, start, end, "chr1", 100000, 100100) {
         Ok(loc) => loc,
@@ -62,16 +62,16 @@ fn dna_route(
     let a: String = parse_assembly_from_query(assembly);
 
     let r: bool = match rev {
-        Some(r) => r,
+        Some(r) => parse_bool(r),
         None => false,
     };
 
     let rc: bool = match comp {
-        Some(rc) => rc,
+        Some(rc) => parse_bool(rc),
         None => false,
     };
 
-    let dna_db: dna::DNA = dna::DNA::new(format!("/data/dna/{}", a));
+    let dna_db: dna::DNA = dna::DNA::new(format!("data/dna/{}", a));
 
     let dna: String = match dna_db.get_dna(&loc, r, rc) {
         Ok(dna) => dna,
@@ -102,7 +102,7 @@ fn within_genes_route(
     let l: u32 = 1;
 
     let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(format!("/data/loctogene/{}.db", a)) {
+        match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
             Ok(db) => db,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
@@ -142,7 +142,7 @@ fn closest_genes_route(
     let l: u32 = 1;
 
     let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(format!("/data/loctogene/{}.db", a)) {
+        match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
             Ok(db) => db,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };

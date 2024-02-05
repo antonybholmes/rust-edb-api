@@ -37,3 +37,13 @@ pub fn parse_assembly_from_query(assembly: Option<&str>) -> String {
 
     return a.to_string();
 }
+
+pub fn parse_bool(b: &str) -> bool {
+    match b {
+        "true" => true,
+        "t" => true,
+        "false" => false,
+        "f" => false,
+        _ => false,
+    }
+}
