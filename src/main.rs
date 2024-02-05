@@ -30,9 +30,19 @@ pub struct AboutJsonResp {
 }
 
 #[derive(Serialize)]
-pub struct DNAJsonResp {
+pub struct DNAJsonData {
     pub location: String,
     pub dna: String,
+}
+
+#[derive(Serialize)]
+pub struct DNAJsonResp {
+    pub data: DNAJsonData,
+}
+
+#[derive(Serialize)]
+pub struct GenesJsonResp {
+    pub data: loctogene::Features,
 }
 
 #[get("/about")]
@@ -54,10 +64,11 @@ fn dna_route(
     rev: Option<&str>,
     comp: Option<&str>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
-        Ok(loc) => loc,
-        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-    };
+    let loc: dna::Location =
+        match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
+            Ok(loc) => loc,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
 
     let a: String = parse_assembly_from_query(assembly);
 
@@ -79,8 +90,10 @@ fn dna_route(
     };
 
     Ok(Json(DNAJsonResp {
-        location: loc.to_string(),
-        dna,
+        data: DNAJsonData {
+            location: loc.to_string(),
+            dna,
+        },
     }))
 }
 
@@ -90,7 +103,7 @@ fn within_genes_route(
     start: Option<u32>,
     end: Option<u32>,
     assembly: Option<&str>,
-) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
+) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
@@ -112,7 +125,7 @@ fn within_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(records))
+    Ok(Json(GenesJsonResp{data:records}))
 }
 
 #[get("/closest?<chr>&<start>&<end>&<assembly>&<n>")]
@@ -122,7 +135,7 @@ fn closest_genes_route(
     end: Option<u32>,
     assembly: Option<&str>,
     n: Option<u16>,
-) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
+) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
@@ -152,7 +165,7 @@ fn closest_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(records))
+    Ok(Json(GenesJsonResp{data:records}))
 }
 
 #[launch]
