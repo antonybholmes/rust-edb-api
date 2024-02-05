@@ -1,4 +1,4 @@
-pub fn parse_loc_from_query(
+pub fn parse_loc_from_route(
     chr: Option<&str>,
     start: Option<u32>,
     end: Option<u32>,

@@ -7,7 +7,7 @@ use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
-use utils::{parse_assembly_from_query, parse_bool, parse_loc_from_query};
+use utils::{parse_assembly_from_query, parse_bool, parse_loc_from_route};
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
@@ -54,7 +54,7 @@ fn dna_route(
     rev: Option<&str>,
     comp: Option<&str>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location = match utils::parse_loc_from_query(chr, start, end, "chr1", 100000, 100100) {
+    let loc: dna::Location = match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
         Ok(loc) => loc,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
@@ -92,7 +92,7 @@ fn within_genes_route(
     assembly: Option<&str>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
-        match parse_loc_from_query(chr, start, end, "chr3", 187721381, 187745468) {
+        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
@@ -124,7 +124,7 @@ fn closest_genes_route(
     n: Option<u16>,
 ) -> Result<Json<loctogene::Features>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
-        match parse_loc_from_query(chr, start, end, "chr3", 187721381, 187745468) {
+        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
