@@ -55,7 +55,7 @@ fn about_route() -> Json<AboutJsonResp> {
     })
 }
 
-#[get("/?<chr>&<start>&<end>&<assembly>&<rev>&<comp>")]
+#[get("/?<chr>&<start>&<end>&<assembly>&<rev>&<comp>&<case>&<mask>")]
 fn dna_route(
     chr: Option<&str>,
     start: Option<u32>,
@@ -63,6 +63,8 @@ fn dna_route(
     assembly: Option<&str>,
     rev: Option<&str>,
     comp: Option<&str>,
+    case: Option<&str>,
+    mask: Option<&str>,
 ) -> Result<Json<DNAJsonResp>, BadRequest<Json<MessageResp>>> {
     let loc: dna::Location =
         match utils::parse_loc_from_route(chr, start, end, "chr1", 100000, 100100) {
@@ -82,12 +84,31 @@ fn dna_route(
         None => false,
     };
 
+    let case_mask: dna::CaseMask = match case {
+        Some(rc) => match rc {
+            "lower"=>dna::CaseMask::Lower,
+            "upper"=>dna::CaseMask::Upper,
+            _=>dna::CaseMask::None
+        },
+        None => dna::CaseMask::None,
+    };
+
+    let repeat_mask: dna::RepeatMask = match mask {
+        Some(rc) => match rc {
+            "lower"=>dna::RepeatMask::Lower,
+            "n"=>dna::RepeatMask::N,
+            _=>dna::RepeatMask::None
+        },
+        None => dna::RepeatMask::None,
+    };
+
     let dna_db: dna::DNA = dna::DNA::new(format!("data/dna/{}", a));
 
-    let dna: String = match dna_db.get_dna(&loc, r, rc) {
-        Ok(dna) => dna,
-        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-    };
+    let dna: String =
+        match dna_db.get_dna(&loc, r, rc, &case_mask, &repeat_mask) {
+            Ok(dna) => dna,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
 
     Ok(Json(DNAJsonResp {
         data: DNAJsonData {
@@ -125,7 +146,7 @@ fn within_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(GenesJsonResp{data:records}))
+    Ok(Json(GenesJsonResp { data: records }))
 }
 
 #[get("/closest?<chr>&<start>&<end>&<assembly>&<n>")]
@@ -165,7 +186,7 @@ fn closest_genes_route(
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(GenesJsonResp{data:records}))
+    Ok(Json(GenesJsonResp { data: records }))
 }
 
 #[launch]
