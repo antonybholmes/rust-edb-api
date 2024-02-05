@@ -8,5 +8,6 @@ edition = "2021"
 [dependencies]
 dna = {path =  "../rust-dna"}
 loctogene = {path =  "../rust-loctogene"}
+annotation = {path =  "../rust-gene-annotation"}
 rocket = {version = "0.5.0", features = ["json"]}
 serde = {version = "1.0.196", features = ["derive"] }

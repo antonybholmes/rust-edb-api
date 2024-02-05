@@ -1,3 +1,5 @@
+use loctogene::Loctogene;
+
 pub fn parse_loc_from_route(
     chr: Option<&str>,
     start: Option<u32>,
@@ -29,7 +31,7 @@ pub fn parse_loc_from_route(
     Ok(loc)
 }
 
-pub fn parse_assembly_from_query(assembly: Option<&str>) -> String {
+pub fn parse_assembly_from_route(assembly: Option<&str>) -> String {
     let a: &str = match assembly {
         Some(assembly) => assembly,
         None => "grch38",
@@ -47,3 +49,25 @@ pub fn parse_bool(b: &str) -> bool {
         _ => false,
     }
 }
+
+pub fn parse_level_from_route(level:Option<&str>) -> loctogene::Level {
+    return match level {
+        Some(l) => loctogene::Level::from(l),
+        None => loctogene::Level::Gene,
+    };
+}
+
+ 
+
+pub fn parse_closest_n_from_route(n:Option<u16>) -> u16 {
+    return match n {
+        Some(nn) => nn,
+        None => 10,
+    };
+}
+
+pub fn create_genesdb(assembly:&str) -> Result<Loctogene, String>{
+    return loctogene::Loctogene::new(&format!("data/loctogene/{}.db", assembly));
+}
+
+ 

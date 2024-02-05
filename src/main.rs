@@ -3,11 +3,14 @@ extern crate rocket;
 
 use std::env::consts::ARCH;
 
+use annotation::{GeneAnnotation, TSSRegion, DEFAULT_TSS_REGION};
+use dna;
+use loctogene;
 use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
-use utils::{parse_assembly_from_query, parse_bool, parse_loc_from_route};
+use utils::{create_genesdb, parse_assembly_from_route, parse_bool, parse_closest_n_from_route, parse_level_from_route, parse_loc_from_route};
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
@@ -41,8 +44,27 @@ pub struct DNAJsonResp {
 }
 
 #[derive(Serialize)]
+pub struct GenesJsonData {
+    pub location: dna::Location,
+    pub level: loctogene::Level,
+    pub features: Vec<loctogene::GenomicFeature>,
+}
+
+#[derive(Serialize)]
 pub struct GenesJsonResp {
-    pub data: loctogene::Features,
+    pub data: GenesJsonData,
+}
+
+#[derive(Serialize)]
+pub struct AnnotationJsonData {
+    pub location: dna::Location,
+    pub level: loctogene::Level,
+    pub annotation: annotation::GeneAnnotation,
+}
+
+#[derive(Serialize)]
+pub struct AnnotationJsonResp {
+    pub data: AnnotationJsonData,
 }
 
 #[get("/about")]
@@ -72,7 +94,7 @@ fn dna_route(
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let a: String = parse_assembly_from_query(assembly);
+    let a: String = parse_assembly_from_route(assembly);
 
     let r: bool = match rev {
         Some(r) => parse_bool(r),
@@ -125,31 +147,33 @@ fn within_genes_route(
     assembly: Option<&str>,
     level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location =
+    let location: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let a: String = parse_assembly_from_query(assembly);
+    let a: String = parse_assembly_from_route(assembly);
 
-    let l: loctogene::Level= match level {
-        Some(l) => loctogene::Level::from(l),
-        None => loctogene::Level::Gene,
+    let l: loctogene::Level = parse_level_from_route(level);
+
+    let genesdb: loctogene::Loctogene = match create_genesdb(&a) {
+        Ok(db) => db,
+        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
-            Ok(db) => db,
-            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-        };
-
-    let records: loctogene::Features = match genesdb.get_genes_within(loc, l) {
+    let features: Vec<loctogene::GenomicFeature> = match genesdb.get_genes_within(&location, l) {
         Ok(records) => records,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(GenesJsonResp { data: records }))
+    Ok(Json(GenesJsonResp {
+        data: GenesJsonData {
+            location,
+            level: l,
+            features,
+        },
+    }))
 }
 
 #[get("/closest?<chr>&<start>&<end>&<assembly>&<n>&<level>")]
@@ -161,44 +185,98 @@ fn closest_genes_route(
     n: Option<u16>,
     level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
-    let loc: dna::Location =
+    let location: dna::Location =
         match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
             Ok(loc) => loc,
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-    let a: &str = match assembly {
-        Some(assembly) => assembly,
-        None => "grch38",
-    };
+    let a: String = parse_assembly_from_route(assembly);
 
-    let nn: u16 = match n {
-        Some(nn) => nn,
-        None => 10,
-    };
+    let closest_n: u16 = parse_closest_n_from_route(n);
 
-    let nn: u16 = match n {
-        Some(nn) => nn,
-        None => 10,
-    };
+    let l: loctogene::Level = parse_level_from_route(level);
 
-    let l: loctogene::Level= match level {
-        Some(l) => loctogene::Level::from(l),
-        None => loctogene::Level::Gene,
-    };
-
-    let genesdb: loctogene::Loctogene =
-        match loctogene::Loctogene::new(&format!("data/loctogene/{}.db", a)) {
-            Ok(db) => db,
-            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
-        };
-
-    let records: loctogene::Features = match genesdb.get_closest_genes(loc, nn, l) {
-        Ok(records) => records,
+    let genesdb: loctogene::Loctogene = match create_genesdb(&a) {
+        Ok(db) => db,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    Ok(Json(GenesJsonResp { data: records }))
+    let features: Vec<loctogene::GenomicFeature> =
+        match genesdb.get_closest_genes(&location, closest_n, l) {
+            Ok(records) => records,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
+
+    Ok(Json(GenesJsonResp {
+        data: GenesJsonData {
+            location,
+            level: l,
+            features,
+        },
+    }))
+}
+
+#[get("/?<chr>&<start>&<end>&<assembly>&<n>&<level>&<tss>")]
+fn annotation_route(
+    chr: Option<&str>,
+    start: Option<u32>,
+    end: Option<u32>,
+    assembly: Option<&str>,
+    n: Option<u16>,
+    level: Option<&str>,
+    tss: Option<&str>,
+) -> Result<Json<AnnotationJsonResp>, BadRequest<Json<MessageResp>>> {
+    let location: dna::Location =
+        match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
+            Ok(loc) => loc,
+            Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+        };
+
+    let a: String = parse_assembly_from_route(assembly);
+
+    let closest_n: u16 = parse_closest_n_from_route(n);
+
+    let l: loctogene::Level = parse_level_from_route(level);
+
+    let ts: TSSRegion = match tss {
+        Some(ts) => {
+            let tokens: Vec<&str> = ts.split(",").collect();
+
+            let s: i32 = match tokens[0].parse::<i32>() {
+                Ok(s) => s,
+                Err(_) => DEFAULT_TSS_REGION.offset_5p,
+            };
+
+            let e: i32 = match tokens[1].parse::<i32>() {
+                Ok(s) => s,
+                Err(_) => DEFAULT_TSS_REGION.offset_3p,
+            };
+
+            TSSRegion::new(s, e)
+        }
+        None => DEFAULT_TSS_REGION,
+    };
+
+    let genesdb: loctogene::Loctogene = match create_genesdb(&a) {
+        Ok(db) => db,
+        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+    };
+
+    let annotatedb: annotation::Annotate = annotation::Annotate::new(genesdb, ts, closest_n);
+
+    let annotation: annotation::GeneAnnotation = match annotatedb.annotate(&location) {
+        Ok(annotation) => annotation,
+        Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
+    };
+
+    Ok(Json(AnnotationJsonResp {
+        data: AnnotationJsonData {
+            location,
+            level: l,
+            annotation,
+        },
+    }))
 }
 
 #[launch]
@@ -210,4 +288,5 @@ fn rocket() -> _ {
             "/v1/genes",
             routes![within_genes_route, closest_genes_route],
         )
+        .mount("/v1/annotation", routes![annotation_route])
 }
