@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use dna::Location;
 use loctogene::{Level, Loctogene, TSSRegion, DEFAULT_TSS_REGION};
 
@@ -24,10 +26,7 @@ pub fn parse_loc_from_route(
         None => default_end,
     };
 
-    let loc: Location = match Location::new(c, s, e) {
-        Ok(loc) => loc,
-        Err(err) => return Err(err),
-    };
+    let loc: Location =  Location::new(c, s, e)?;
 
     Ok(loc)
 }
@@ -70,12 +69,12 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
         Some(ts) => {
             let tokens: Vec<&str> = ts.split(",").collect();
 
-            let s: i32 = match tokens[0].parse::<i32>() {
+            let s: u32 = match tokens[0].parse::<u32>() {
                 Ok(s) => s,
                 Err(_) => DEFAULT_TSS_REGION.offset_5p,
             };
 
-            let e: i32 = match tokens[1].parse::<i32>() {
+            let e: u32 = match tokens[1].parse::<u32>() {
                 Ok(s) => s,
                 Err(_) => DEFAULT_TSS_REGION.offset_3p,
             };
@@ -86,6 +85,6 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
     };
 }
 
-pub fn create_genesdb(assembly: &str) -> Result<Loctogene, String> {
+pub fn create_genesdb(assembly: &str) -> Result<Loctogene, Box<dyn Error>> {
     return Loctogene::new(&format!("data/loctogene/{}.db", assembly));
 }
