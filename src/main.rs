@@ -220,8 +220,8 @@ fn closest_genes_route(
     }))
 }
 
-#[derive(Serialize,Deserialize,Debug)]
-struct Body<'a> {
+#[derive(Serialize, Deserialize, Debug)]
+struct AnnotationBody<'a> {
     locations: Vec<Location>,
     assembly: &'a str,
     n: u16,
@@ -231,10 +231,8 @@ struct Body<'a> {
 
 #[post("/", data = "<body>")]
 fn annotation_route(
-    body: Json<Body<'_>>,
+    body: Json<AnnotationBody<'_>>,
 ) -> Result<Json<AnnotationJsonResp>, BadRequest<Json<MessageResp>>> {
-
-
     // Print, write to a file, or send to an HTTP server.
     println!("{:?}", body);
     // let location: dna::Location =
@@ -284,7 +282,7 @@ fn annotation_route(
             Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
         };
 
-        data.push( AnnotationJsonData {
+        data.push(AnnotationJsonData {
             location: location.clone(),
             level: l,
             annotation,
