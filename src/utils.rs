@@ -1,4 +1,5 @@
-use loctogene::Loctogene;
+use dna::Location;
+use loctogene::{Level, Loctogene, TSSRegion, DEFAULT_TSS_REGION};
 
 pub fn parse_loc_from_route(
     chr: Option<&str>,
@@ -23,7 +24,7 @@ pub fn parse_loc_from_route(
         None => default_end,
     };
 
-    let loc: dna::Location = match dna::Location::new(c, s, e) {
+    let loc: Location = match Location::new(c, s, e) {
         Ok(loc) => loc,
         Err(err) => return Err(err),
     };
@@ -50,24 +51,41 @@ pub fn parse_bool(b: &str) -> bool {
     }
 }
 
-pub fn parse_level_from_route(level:Option<&str>) -> loctogene::Level {
+pub fn parse_level_from_route(level: Option<&str>) -> Level {
     return match level {
-        Some(l) => loctogene::Level::from(l),
-        None => loctogene::Level::Gene,
+        Some(l) => Level::from(l),
+        None => Level::Gene,
     };
 }
 
- 
-
-pub fn parse_closest_n_from_route(n:Option<u16>) -> u16 {
+pub fn parse_closest_n_from_route(n: Option<u16>) -> u16 {
     return match n {
         Some(nn) => nn,
         None => 10,
     };
 }
 
-pub fn create_genesdb(assembly:&str) -> Result<Loctogene, String>{
-    return loctogene::Loctogene::new(&format!("data/loctogene/{}.db", assembly));
+pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
+    return match tss {
+        Some(ts) => {
+            let tokens: Vec<&str> = ts.split(",").collect();
+
+            let s: i32 = match tokens[0].parse::<i32>() {
+                Ok(s) => s,
+                Err(_) => DEFAULT_TSS_REGION.offset_5p,
+            };
+
+            let e: i32 = match tokens[1].parse::<i32>() {
+                Ok(s) => s,
+                Err(_) => DEFAULT_TSS_REGION.offset_3p,
+            };
+
+            TSSRegion::new(s, e)
+        }
+        None => DEFAULT_TSS_REGION,
+    };
 }
 
- 
+pub fn create_genesdb(assembly: &str) -> Result<Loctogene, String> {
+    return Loctogene::new(&format!("data/loctogene/{}.db", assembly));
+}

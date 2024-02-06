@@ -3,9 +3,9 @@ extern crate rocket;
 
 use std::env::consts::ARCH;
 
-use annotation::{Annotate, GeneAnnotation, TSSRegion};
+use annotation::{Annotate, GeneAnnotation};
 use dna::{self, Format, Location, RepeatMask, DNA};
-use loctogene::{self, GenomicFeature, Level, Loctogene};
+use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
 use rocket::{
     response::status::BadRequest,
     serde::{json::Json, Serialize},
@@ -13,9 +13,12 @@ use rocket::{
 use serde::Deserialize;
 use utils::{
     create_genesdb, parse_assembly_from_route, parse_bool, parse_closest_n_from_route,
-    parse_level_from_route, parse_loc_from_route,
+    parse_level_from_route, parse_loc_from_route, parse_tss_from_query
 };
 
+ 
+
+ 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
 const COPYRIGHT: &'static str = "Copyright (C) 2024 Antony Holmes";
@@ -221,19 +224,24 @@ fn closest_genes_route(
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct AnnotationBody<'a> {
+struct AnnotationBody {
     locations: Vec<Location>,
-    assembly: &'a str,
-    n: u16,
-    level: &'a str,
-    tss: [i32; 2],
 }
 
-#[post("/", data = "<body>")]
+#[post("/?<assembly>&<n>&<tss>", data = "<body>")]
 fn annotation_route(
-    body: Json<AnnotationBody<'_>>,
+    assembly: Option<&str>,
+    n: Option<u16>,
+    tss: Option<&str>,
+    body: Json<AnnotationBody>,
 ) -> Result<Json<AnnotationJsonResp>, BadRequest<Json<MessageResp>>> {
-    // Print, write to a file, or send to an HTTP server.
+    
+    let a: String = parse_assembly_from_route(assembly);
+
+    let closest_n: u16 = parse_closest_n_from_route(n);
+
+    let ts: TSSRegion = parse_tss_from_query(tss);
+
     println!("{:?}", body);
     // let location: dna::Location =
     //     match parse_loc_from_route(chr, start, end, "chr3", 187721381, 187745468) {
@@ -241,7 +249,7 @@ fn annotation_route(
     //         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     //     };
 
-    let l: Level = loctogene::Level::from(body.level);
+    let l: Level = Level::Gene; //loctogene::Level::from(body.level);
 
     // let ts: TSSRegion = match tss {
     //     Some(ts) => {
@@ -262,17 +270,13 @@ fn annotation_route(
     //     None => DEFAULT_TSS_REGION,
     // };
 
-    let ts: TSSRegion = TSSRegion {
-        offset_5p: body.tss[0],
-        offset_3p: body.tss[1],
-    };
-
-    let genesdb: Loctogene = match create_genesdb(body.assembly) {
+ 
+    let genesdb: Loctogene = match create_genesdb(&a) {
         Ok(db) => db,
         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     };
 
-    let annotatedb: Annotate = Annotate::new(genesdb, ts, body.n);
+    let annotatedb: Annotate = Annotate::new(genesdb, ts, closest_n);
 
     let mut data: Vec<AnnotationJsonData> = Vec::with_capacity(body.locations.len());
 
