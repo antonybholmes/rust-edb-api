@@ -3,7 +3,7 @@ extern crate rocket;
 
 use std::env::consts::ARCH;
 
-use annotation::{Annotate, GeneAnnotation};
+use annotation::{Annotate, ClosestGene, GeneAnnotation};
 use dna::{self, Format, Location, RepeatMask, DNA};
 use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
 use rocket::{
@@ -35,8 +35,6 @@ macro_rules! unwrap_bad_req {
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
 const COPYRIGHT: &'static str = "Copyright (C) 2024 Antony Holmes";
-
-
 
 #[derive(Serialize)]
 pub struct MessageResp {
@@ -75,15 +73,23 @@ pub struct GenesJsonResp {
 }
 
 #[derive(Serialize)]
+pub struct GeneAnnotationTable {
+    pub location: Vec<Location>,
+    pub gene_ids: Vec<String>,
+    pub gene_symbols: Vec<String>,
+    pub prom_labels: Vec<String>,
+    pub tss_dists: Vec<String>,
+    pub closest_genes: Vec<Vec<ClosestGene>>,
+}
+#[derive(Serialize)]
 pub struct AnnotationJsonData {
-    pub location: Location,
-    pub level: Level,
-    pub annotation: GeneAnnotation,
+    pub headers: Vec<String>,
+    pub data: GeneAnnotationTable,
 }
 
 #[derive(Serialize)]
 pub struct AnnotationJsonResp {
-    pub data: Vec<AnnotationJsonData>,
+    pub data: AnnotationJsonData,
 }
 
 #[get("/about")]
@@ -240,8 +246,6 @@ fn annotation_route(
     //         Err(err) => return Err(BadRequest(Json(MessageResp { message: err }))),
     //     };
 
-    let l: Level = Level::Gene; //loctogene::Level::from(body.level);
-
     // let ts: TSSRegion = match tss {
     //     Some(ts) => {
     //         let tokens: Vec<&str> = ts.split(",").collect();
@@ -265,19 +269,70 @@ fn annotation_route(
 
     let annotatedb: Annotate = Annotate::new(genesdb, ts, closest_n);
 
-    let mut data: Vec<AnnotationJsonData> = Vec::with_capacity(body.locations.len());
+    let l = body.locations.len();
+
+    let mut headers: Vec<String> = Vec::with_capacity(6 + l);
+
+    headers.push("Location".to_owned());
+    headers.push("ID".to_owned());
+    headers.push("Gene Symbol".to_owned());
+    headers.push(format!(
+        "Relative To Gene (prom=-{}/+{}kb)",
+        ts.offset_5p() / 1000,
+        ts.offset_3p() / 1000
+    ));
+    headers.push("TSS Distance".to_owned());
+
+    for i in 1..(l + 1) {
+        headers.push(format!("#{} Closest ID", i));
+        headers.push(format!("#{} Closest Gene Symbols", i));
+        headers.push(format!(
+            "#{} Relative To Closet Gene (prom=-{}/+{}kb)",
+            i,
+            ts.offset_5p() / 1000,
+            ts.offset_3p() / 1000
+        ));
+        headers.push(format!("#{} TSS Closest Distance", i));
+    }
+
+    let mut table: GeneAnnotationTable = GeneAnnotationTable {
+        location: Vec::with_capacity(l),
+        gene_ids: Vec::with_capacity(l),
+        gene_symbols: Vec::with_capacity(l),
+        prom_labels: Vec::with_capacity(l),
+        tss_dists: Vec::with_capacity(l),
+        closest_genes: Vec::with_capacity(closest_n as usize),
+    };
+
+    // create one col for each closest gene
+    while table.closest_genes.len() < l {
+        table.closest_genes.push(Vec::with_capacity(l));
+    }
 
     for location in body.locations.iter() {
         let annotation: GeneAnnotation = unwrap_bad_req!(annotatedb.annotate(&location));
 
-        data.push(AnnotationJsonData {
-            location: location.clone(),
-            level: l,
-            annotation,
-        });
+        table.location.push(location.clone());
+        table.gene_ids.push(annotation.gene_ids);
+        table.gene_ids.push(annotation.gene_symbols);
+        table.prom_labels.push(annotation.prom_labels);
+        table.tss_dists.push(annotation.tss_dists);
+
+        for (i, closest_gene) in annotation.closest_genes.iter().enumerate() {
+            table
+                .closest_genes
+                .get_mut(i)
+                .unwrap()
+                .push(closest_gene.clone());
+        }
     }
 
-    Ok(Json(AnnotationJsonResp { data }))
+    Ok(Json(AnnotationJsonResp {
+        data: AnnotationJsonData {
+            headers,
+            data: table,
+        },
+    }))
 }
 
 #[launch]

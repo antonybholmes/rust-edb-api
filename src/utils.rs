@@ -1,7 +1,7 @@
 use std::error::Error;
 
 use dna::Location;
-use loctogene::{Level, Loctogene, TSSRegion, DEFAULT_TSS_REGION};
+use loctogene::{Level, Loctogene, TSSRegion};
 
 pub fn parse_loc_from_route(
     chr: Option<&str>,
@@ -71,17 +71,17 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
 
             let s: i32 = match tokens[0].parse::<i32>() {
                 Ok(s) => s,
-                Err(_) => DEFAULT_TSS_REGION.offset_5p,
+                Err(_) => return TSSRegion::default(),
             };
 
             let e: i32 = match tokens[1].parse::<i32>() {
                 Ok(s) => s,
-                Err(_) => DEFAULT_TSS_REGION.offset_3p,
+                Err(_) => return TSSRegion::default(),
             };
 
             TSSRegion::new(s, e)
         }
-        None => DEFAULT_TSS_REGION,
+        None => TSSRegion::default(),
     };
 }
 
