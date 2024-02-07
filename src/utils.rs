@@ -5,23 +5,23 @@ use loctogene::{Level, Loctogene, TSSRegion, DEFAULT_TSS_REGION};
 
 pub fn parse_loc_from_route(
     chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
+    start: Option<i32>,
+    end: Option<i32>,
     default_chr: &str,
-    default_start: u32,
-    default_end: u32,
+    default_start: i32,
+    default_end: i32,
 ) -> Result<dna::Location, String> {
     let c: &str = match chr {
         Some(c) => c,
         None => default_chr,
     };
 
-    let s: u32 = match start {
+    let s: i32 = match start {
         Some(s) => s,
         None => default_start,
     };
 
-    let e: u32 = match end {
+    let e: i32 = match end {
         Some(e) => e,
         None => default_end,
     };
@@ -69,12 +69,12 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
         Some(ts) => {
             let tokens: Vec<&str> = ts.split(",").collect();
 
-            let s: u32 = match tokens[0].parse::<u32>() {
+            let s: i32 = match tokens[0].parse::<i32>() {
                 Ok(s) => s,
                 Err(_) => DEFAULT_TSS_REGION.offset_5p,
             };
 
-            let e: u32 = match tokens[1].parse::<u32>() {
+            let e: i32 = match tokens[1].parse::<i32>() {
                 Ok(s) => s,
                 Err(_) => DEFAULT_TSS_REGION.offset_3p,
             };

@@ -99,8 +99,8 @@ fn about_route() -> Json<AboutJsonResp> {
 #[get("/?<chr>&<start>&<end>&<assembly>&<format>&<mask>&<rev>&<comp>")]
 fn dna_route(
     chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
+    start: Option<i32>,
+    end: Option<i32>,
     assembly: Option<&str>,
     rev: Option<&str>,
     comp: Option<&str>,
@@ -156,8 +156,8 @@ fn dna_route(
 #[get("/within?<chr>&<start>&<end>&<assembly>&<level>")]
 fn within_genes_route(
     chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
+    start: Option<i32>,
+    end: Option<i32>,
     assembly: Option<&str>,
     level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
@@ -185,8 +185,8 @@ fn within_genes_route(
 #[get("/closest?<chr>&<start>&<end>&<assembly>&<n>&<level>")]
 fn closest_genes_route(
     chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
+    start: Option<i32>,
+    end: Option<i32>,
     assembly: Option<&str>,
     n: Option<u16>,
     level: Option<&str>,
