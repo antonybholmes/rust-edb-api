@@ -109,7 +109,7 @@ fn make_table() -> Result<String, Box<dyn Error>> {
     // Since we're writing records manually, we must explicitly write our
     // header record. A header record is written the same way that other
     // records are written.
-    wtr.write_record(&["City", "State", "Population", "Latitude", "Longitude"])?;
+    wtr.write_record(&vec!["City", "State", "Population", "Latitude", "Longitude"])?;
      wtr.write_record(&[
         "Davidsons Landing",
         "AK",
