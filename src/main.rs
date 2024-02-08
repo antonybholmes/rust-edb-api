@@ -1,16 +1,17 @@
 #[macro_use]
 extern crate rocket;
 
-use std::env::consts::ARCH;
-
 use annotation::{Annotate, ClosestGene, GeneAnnotation};
+use csv::WriterBuilder;
 use dna::{self, Format, Location, RepeatMask, DNA};
 use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
 use rocket::{
+    http::ContentType,
     response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
 use serde::Deserialize;
+use std::{env::consts::ARCH, error::Error};
 use utils::{
     create_genesdb, parse_assembly_from_route, parse_bool, parse_closest_n_from_route,
     parse_level_from_route, parse_loc_from_route, parse_tss_from_query,
@@ -89,7 +90,7 @@ pub struct AnnotationJsonData {
 
 #[derive(Serialize)]
 pub struct AnnotationJsonResp {
-    pub data: AnnotationJsonData,
+    pub data: GeneAnnotationTable,
 }
 
 #[get("/about")]
@@ -100,6 +101,37 @@ fn about_route() -> Json<AboutJsonResp> {
         copyright: COPYRIGHT,
         arch: ARCH,
     })
+}
+
+fn make_table() -> Result<String, Box<dyn Error>> {
+    let mut wtr = WriterBuilder::new().delimiter(b'\t').from_writer(vec![]);
+
+    // Since we're writing records manually, we must explicitly write our
+    // header record. A header record is written the same way that other
+    // records are written.
+    wtr.write_record(&["City", "State", "Population", "Latitude", "Longitude"])?;
+     wtr.write_record(&[
+        "Davidsons Landing",
+        "AK",
+        "",
+        "65.2419444",
+        "-165.2716667"
+    ])?;
+     wtr.write_record(&["Kenai", "AK", "7610", "60.5544444", "-151.2583333"])?;
+     wtr.write_record(&["Oakman", "AL", "", "33.7133333", "-87.3886111"])?;
+
+    let inner: Vec<u8> =  wtr.into_inner()?;
+    let data: String =  String::from_utf8(inner)?;
+
+    Ok(data)
+}
+
+#[get("/cheese")]
+fn cheese_route() -> Result<(ContentType, String), BadRequest<Json<MessageResp>>> {
+
+    let data: String = unwrap_bad_req!(make_table());
+
+    Ok((ContentType::Text, data))
 }
 
 #[get("/?<chr>&<start>&<end>&<assembly>&<format>&<mask>&<rev>&<comp>")]
@@ -271,29 +303,29 @@ fn annotation_route(
 
     let l = body.locations.len();
 
-    let mut headers: Vec<String> = Vec::with_capacity(6 + l);
+    // let mut headers: Vec<String> = Vec::with_capacity(6 + l);
 
-    headers.push("Location".to_owned());
-    headers.push("ID".to_owned());
-    headers.push("Gene Symbol".to_owned());
-    headers.push(format!(
-        "Relative To Gene (prom=-{}/+{}kb)",
-        ts.offset_5p() / 1000,
-        ts.offset_3p() / 1000
-    ));
-    headers.push("TSS Distance".to_owned());
+    // headers.push("Location".to_owned());
+    // headers.push("ID".to_owned());
+    // headers.push("Gene Symbol".to_owned());
+    // headers.push(format!(
+    //     "Relative To Gene (prom=-{}/+{}kb)",
+    //     ts.offset_5p() / 1000,
+    //     ts.offset_3p() / 1000
+    // ));
+    // headers.push("TSS Distance".to_owned());
 
-    for i in 1..(l + 1) {
-        headers.push(format!("#{} Closest ID", i));
-        headers.push(format!("#{} Closest Gene Symbols", i));
-        headers.push(format!(
-            "#{} Relative To Closet Gene (prom=-{}/+{}kb)",
-            i,
-            ts.offset_5p() / 1000,
-            ts.offset_3p() / 1000
-        ));
-        headers.push(format!("#{} TSS Closest Distance", i));
-    }
+    // for i in 1..(l + 1) {
+    //     headers.push(format!("#{} Closest ID", i));
+    //     headers.push(format!("#{} Closest Gene Symbols", i));
+    //     headers.push(format!(
+    //         "#{} Relative To Closet Gene (prom=-{}/+{}kb)",
+    //         i,
+    //         ts.offset_5p() / 1000,
+    //         ts.offset_3p() / 1000
+    //     ));
+    //     headers.push(format!("#{} TSS Closest Distance", i));
+    // }
 
     let mut table: GeneAnnotationTable = GeneAnnotationTable {
         location: Vec::with_capacity(l),
@@ -327,18 +359,13 @@ fn annotation_route(
         }
     }
 
-    Ok(Json(AnnotationJsonResp {
-        data: AnnotationJsonData {
-            headers,
-            data: table,
-        },
-    }))
+    Ok(Json(AnnotationJsonResp { data: table }))
 }
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .mount("/", routes![about_route])
+        .mount("/", routes![about_route, cheese_route])
         .mount("/v1/dna", routes![dna_route])
         .mount(
             "/v1/genes",
