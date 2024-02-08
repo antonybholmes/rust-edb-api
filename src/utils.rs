@@ -1,7 +1,26 @@
+pub mod genes;
+
 use std::error::Error;
 
 use dna::Location;
 use loctogene::{Level, Loctogene, TSSRegion};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize)]
+pub struct DNAJsonData {
+    pub location: String,
+    pub dna: String,
+}
+
+#[derive(Serialize)]
+pub struct DNAJsonResp {
+    pub data: DNAJsonData,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AnnotationBody {
+    locations: Vec<Location>,
+}
 
 pub fn parse_loc_from_route(
     chr: Option<&str>,
@@ -26,19 +45,19 @@ pub fn parse_loc_from_route(
         None => default_end,
     };
 
-    let loc: Location =  Location::new(c, s, e)?;
+    let loc: Location = Location::new(c, s, e)?;
 
     Ok(loc)
 }
 
-pub fn parse_assembly_from_route(assembly: Option<&str>) -> String {
-    let a: &str = match assembly {
-        Some(assembly) => assembly,
-        None => "grch38",
-    };
+// pub fn parse_assembly_from_route(assembly: Option<&str>) -> String {
+//     let a: &str = match assembly {
+//         Some(assembly) => assembly,
+//         None => "grch38",
+//     };
 
-    return a.to_string();
-}
+//     return a.to_string();
+// }
 
 pub fn parse_bool(b: &str) -> bool {
     match b {
@@ -60,7 +79,7 @@ pub fn parse_level_from_route(level: Option<&str>) -> Level {
 pub fn parse_closest_n_from_route(n: Option<u16>) -> u16 {
     return match n {
         Some(nn) => nn,
-        None => 10,
+        None => 5,
     };
 }
 
@@ -82,6 +101,19 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
             TSSRegion::new(s, e)
         }
         None => TSSRegion::default(),
+    };
+}
+
+pub fn parse_format_from_query(format: Option<&str>) -> String {
+    return match format {
+        Some(format) => {
+            if format == "text" {
+                "text".to_owned()
+            } else {
+                "json".to_owned()
+            }
+        }
+        None => "json".to_owned(),
     };
 }
 
