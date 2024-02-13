@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-use annotation::Annotate;
+use genes::Annotate;
 
 use dna::{Format, Location, RepeatMask, DNA};
 use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
@@ -15,25 +15,14 @@ use std::env::consts::ARCH;
 use utils::{
     create_genesdb,
     genes::{GenesJsonData, GenesJsonResp},
-    parse_bool, parse_closest_n_from_route, parse_format_from_query, parse_level_from_route,
+    parse_bool, parse_closest_n_from_route, parse_output_from_query, parse_level_from_route,
     parse_loc_from_route, parse_tss_from_query, AnnotationBody, DNAJsonData, DNAJsonResp,
 };
 
 mod tests;
 mod utils;
 
-macro_rules! unwrap_bad_req {
-    ( $e:expr ) => {
-        match $e {
-            Ok(x) => x,
-            Err(err) => {
-                return Err(BadRequest(Json(MessageResp {
-                    message: err.to_string(),
-                })))
-            }
-        }
-    };
-}
+
 
 const NAME: &'static str = "edb-api";
 const VERSION: &'static str = "1.0.0";
@@ -66,8 +55,8 @@ fn about_route() -> Json<AboutJsonResp> {
 fn dna_route(
     assembly: &str,
     chr: Option<&str>,
-    start: Option<i32>,
-    end: Option<i32>,
+    start: Option<u32>,
+    end: Option<u32>,
     rev: Option<&str>,
     comp: Option<&str>,
     format: Option<&str>,
@@ -121,8 +110,8 @@ fn dna_route(
 fn within_genes_route(
     assembly: &str,
     chr: Option<&str>,
-    start: Option<i32>,
-    end: Option<i32>,
+    start: Option<u32>,
+    end: Option<u32>,
     level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
     let location: dna::Location = unwrap_bad_req!(parse_loc_from_route(
@@ -148,8 +137,8 @@ fn within_genes_route(
 fn closest_genes_route(
     assembly: &str,
     chr: Option<&str>,
-    start: Option<i32>,
-    end: Option<i32>,
+    start: Option<u32>,
+    end: Option<u32>,
     n: Option<u16>,
     level: Option<&str>,
 ) -> Result<Json<GenesJsonResp>, BadRequest<Json<MessageResp>>> {
@@ -175,12 +164,12 @@ fn closest_genes_route(
     }))
 }
 
-#[post("/<assembly>?<n>&<tss>&<format>", data = "<body>")]
+#[post("/<assembly>?<n>&<tss>&<output>", data = "<body>")]
 fn annotation_route(
     assembly: &str,
     n: Option<u16>,
     tss: Option<&str>,
-    format: Option<&str>,
+    output: Option<&str>,
     body: Json<AnnotationBody>,
 ) -> Result<(ContentType, String), BadRequest<Json<MessageResp>>> {
     //let a: String = parse_assembly_from_route(assembly);
@@ -189,19 +178,19 @@ fn annotation_route(
 
     let ts: TSSRegion = parse_tss_from_query(tss);
 
-    let format: String = parse_format_from_query(format);
+    let output: String = parse_output_from_query(output);
 
     let genesdb: Loctogene = unwrap_bad_req!(create_genesdb(assembly));
 
     let annotatedb: Annotate = Annotate::new(genesdb, ts, closest_n);
 
-    let d: String = unwrap_bad_req!(if format == "text" {
+    let d: String = unwrap_bad_req!(if output == "text" {
         utils::genes::make_gene_table(&annotatedb, &body, closest_n, &ts)
     } else {
         utils::genes::make_gene_json(&annotatedb, &body, closest_n)
     });
 
-    let content_type: ContentType = if format == "text" {
+    let content_type: ContentType = if output == "text" {
         ContentType::Text
     } else {
         ContentType::JSON

@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use annotation::{Annotate, ClosestGene, GeneAnnotation};
+use genes::{Annotate, ClosestGene, GeneAnnotation};
 use csv::WriterBuilder;
 use dna::Location;
 use loctogene::{GenomicFeature, Level, TSSRegion};

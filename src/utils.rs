@@ -6,6 +6,20 @@ use dna::Location;
 use loctogene::{Level, Loctogene, TSSRegion};
 use serde::{Deserialize, Serialize};
 
+#[macro_export]
+macro_rules! unwrap_bad_req {
+    ( $e:expr ) => {
+        match $e {
+            Ok(x) => x,
+            Err(err) => {
+                return Err(BadRequest(Json(MessageResp {
+                    message: err.to_string(),
+                })))
+            }
+        }
+    };
+}
+
 #[derive(Serialize)]
 pub struct DNAJsonData {
     pub location: String,
@@ -24,23 +38,23 @@ pub struct AnnotationBody {
 
 pub fn parse_loc_from_route(
     chr: Option<&str>,
-    start: Option<i32>,
-    end: Option<i32>,
+    start: Option<u32>,
+    end: Option<u32>,
     default_chr: &str,
-    default_start: i32,
-    default_end: i32,
+    default_start: u32,
+    default_end: u32,
 ) -> Result<dna::Location, String> {
     let c: &str = match chr {
         Some(c) => c,
         None => default_chr,
     };
 
-    let s: i32 = match start {
+    let s: u32 = match start {
         Some(s) => s,
         None => default_start,
     };
 
-    let e: i32 = match end {
+    let e: u32 = match end {
         Some(e) => e,
         None => default_end,
     };
@@ -88,12 +102,12 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
         Some(ts) => {
             let tokens: Vec<&str> = ts.split(",").collect();
 
-            let s: i32 = match tokens[0].parse::<i32>() {
+            let s: u32 = match tokens[0].parse::<u32>() {
                 Ok(s) => s,
                 Err(_) => return TSSRegion::default(),
             };
 
-            let e: i32 = match tokens[1].parse::<i32>() {
+            let e: u32 = match tokens[1].parse::<u32>() {
                 Ok(s) => s,
                 Err(_) => return TSSRegion::default(),
             };
@@ -104,10 +118,10 @@ pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
     };
 }
 
-pub fn parse_format_from_query(format: Option<&str>) -> String {
-    return match format {
-        Some(format) => {
-            if format == "text" {
+pub fn parse_output_from_query(output: Option<&str>) -> String {
+    return match output {
+        Some(output) => {
+            if output == "text" {
                 "text".to_owned()
             } else {
                 "json".to_owned()
