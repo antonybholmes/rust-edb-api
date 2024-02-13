@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+auth = {path =  "../rust-auth"}
 dna = {path =  "../rust-dna"}
 loctogene = {path =  "../rust-loctogene"}
 genes = {path =  "../rust-genes"}
@@ -13,3 +14,5 @@ rocket = {version = "0.5.0", features = ["json"]}
 serde = {version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
 csv = "1.3.0"
+jsonwebtoken = "9.2.0"
+dotenvy = "0.15.7"

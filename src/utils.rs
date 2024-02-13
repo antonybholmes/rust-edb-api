@@ -1,24 +1,45 @@
 pub mod genes;
 
-use std::error::Error;
+use std::{error::Error, fmt::Display};
 
+use auth::{AuthResult, UserDb};
 use dna::Location;
 use loctogene::{Level, Loctogene, TSSRegion};
+
+use rocket::{response::status::BadRequest, serde::json::Json};
 use serde::{Deserialize, Serialize};
 
-#[macro_export]
-macro_rules! unwrap_bad_req {
-    ( $e:expr ) => {
-        match $e {
-            Ok(x) => x,
-            Err(err) => {
-                return Err(BadRequest(Json(MessageResp {
-                    message: err.to_string(),
-                })))
-            }
-        }
-    };
+#[derive(Serialize)]
+pub struct MessageResp {
+    pub message: String,
 }
+
+pub type ErrorResp = BadRequest<Json<MessageResp>>;
+
+pub type AppResult<T> = Result<T, ErrorResp>;
+
+pub type JsonResult<T> = AppResult<Json<T>>;
+
+
+pub fn bad_req(err: String) -> ErrorResp {
+    BadRequest(Json(MessageResp { message: err }))
+}
+
+pub fn unwrap_bad_req<T, E>(x: Result<T, E>) -> Result<T, ErrorResp>
+where
+    E: Display,
+{
+    match x {
+        Ok(x) => Ok(x),
+        Err(err) => Err(bad_req(err.to_string())),
+    }
+}
+
+
+
+
+
+
 
 #[derive(Serialize)]
 pub struct DNAJsonData {
@@ -133,4 +154,8 @@ pub fn parse_output_from_query(output: Option<&str>) -> String {
 
 pub fn create_genesdb(assembly: &str) -> Result<Loctogene, Box<dyn Error>> {
     return Loctogene::new(&format!("data/loctogene/{}.db", assembly));
+}
+
+pub fn create_userdb() -> AuthResult<UserDb> {
+    return UserDb::new("data/users.db");
 }
