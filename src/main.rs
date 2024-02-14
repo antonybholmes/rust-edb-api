@@ -10,11 +10,11 @@ use rocket::{
     http::ContentType,
     serde::{json::Json, Serialize},
 };
-
+ 
 
 use std::env::consts::ARCH;
 use utils::{
-    bad_req, create_genesdb, create_userdb,
+    create_genesdb, create_userdb,
     genes::{GenesJsonData, GenesJsonResp},
     parse_bool, parse_closest_n_from_route, parse_level_from_route, parse_loc_from_route,
     parse_output_from_query, parse_tss_from_query, unwrap_bad_req, AnnotationBody, DNAJsonData,
@@ -22,8 +22,7 @@ use utils::{
 };
 
 use auth::{
-    jwt::{create_jwt, JWTResp},
-    AuthUser, LoginUser,
+    jwt::{create_jwt, JWTResp}, AuthError, AuthUser, LoginUser, UserDb
 };
 
 mod tests;
@@ -51,19 +50,38 @@ fn about_route() -> Json<AboutJsonResp> {
     })
 }
 
+pub fn register(user: &Json<LoginUser>) -> Result<String, AuthError> {
+    let userdb: UserDb = create_userdb()?;
+
+    let auth_user: AuthUser = userdb.create_user(user)?;
+
+    let jwt: String =  create_jwt(&auth_user)?;
+
+    Ok(jwt)
+}
+
+#[post("/register", format = "application/json", data = "<user>")]
+pub fn register_handler(user: Json<LoginUser>) -> JsonResult<JWTResp> {
+ 
+    let jwt: String = unwrap_bad_req(register(&user))?;
+
+    Ok(Json(JWTResp { jwt }))
+}
+
+pub fn login(user: &Json<LoginUser>) -> Result<String, AuthError> {
+    let userdb: UserDb = create_userdb()?;
+
+    let auth_user: AuthUser = userdb.find_user_by_email(user)?;
+
+    let jwt: String =  create_jwt(&auth_user)?;
+
+    Ok(jwt)
+}
+
 #[post("/login", format = "application/json", data = "<user>")]
-pub fn login_user_handler(user: Json<LoginUser>) -> JsonResult<JWTResp> {
-    let userdb: auth::UserDb = unwrap_bad_req(create_userdb())?;
-
-    let auth_users: Vec<auth::AuthUser> = unwrap_bad_req(userdb.find_user_by_email(&user))?;
-
-    if auth_users.len() == 0 {
-        return Err(bad_req("invalid user".to_string()));
-    }
-
-    let auth_user: AuthUser = auth_users.get(0).unwrap().clone();
-
-    let jwt: String = unwrap_bad_req(create_jwt(&auth_user))?;
+pub fn login_handler(user: Json<LoginUser>) -> JsonResult<JWTResp> {
+ 
+    let jwt: String = unwrap_bad_req(login(&user))?;
 
     Ok(Json(JWTResp { jwt }))
 }
