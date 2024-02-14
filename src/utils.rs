@@ -16,6 +16,12 @@ pub struct MessageResp {
 
 pub type ErrorResp = BadRequest<Json<MessageResp>>;
 
+// impl From<E> for ErrorResp where E:Display {
+//     fn from(err: io::Error) -> ErrorResp {
+//         return BadRequest(Json(MessageResp { message: err }));
+//     }
+// }
+
 pub type AppResult<T> = Result<T, ErrorResp>;
 
 pub type JsonResult<T> = AppResult<Json<T>>;

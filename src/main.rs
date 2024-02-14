@@ -8,10 +8,9 @@ use dna::{Format, Location, RepeatMask, DNA};
 use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
 use rocket::{
     http::ContentType,
-    response::status::BadRequest,
     serde::{json::Json, Serialize},
 };
-use serde::Deserialize;
+
 
 use std::env::consts::ARCH;
 use utils::{
@@ -23,7 +22,7 @@ use utils::{
 };
 
 use auth::{
-    jwt::{create_jwt, JWTResp, JWT},
+    jwt::{create_jwt, JWTResp},
     AuthUser, LoginUser,
 };
 
