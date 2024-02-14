@@ -20,7 +20,6 @@ pub type AppResult<T> = Result<T, ErrorResp>;
 
 pub type JsonResult<T> = AppResult<Json<T>>;
 
-
 pub fn bad_req(err: String) -> ErrorResp {
     BadRequest(Json(MessageResp { message: err }))
 }
@@ -34,12 +33,6 @@ where
         Err(err) => Err(bad_req(err.to_string())),
     }
 }
-
-
-
-
-
-
 
 #[derive(Serialize)]
 pub struct DNAJsonData {
