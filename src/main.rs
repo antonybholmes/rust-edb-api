@@ -61,7 +61,7 @@ pub fn register(user: &Json<LoginUser>) -> Result<String, AuthError> {
 }
 
 #[post("/register", format = "application/json", data = "<user>")]
-pub fn register_handler(user: Json<LoginUser>) -> JsonResult<JWTResp> {
+pub fn register_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
  
     let jwt: String = unwrap_bad_req(register(&user))?;
 
@@ -79,7 +79,7 @@ pub fn login(user: &Json<LoginUser>) -> Result<String, AuthError> {
 }
 
 #[post("/login", format = "application/json", data = "<user>")]
-pub fn login_handler(user: Json<LoginUser>) -> JsonResult<JWTResp> {
+pub fn login_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
  
     let jwt: String = unwrap_bad_req(login(&user))?;
 
@@ -239,7 +239,7 @@ fn rocket() -> _ {
     dotenv().ok();
 
     rocket::build()
-        .mount("/", routes![about_route])
+        .mount("/", routes![about_route, register_route, login_route])
         .mount("/v1/dna", routes![dna_route])
         .mount(
             "/v1/genes",
