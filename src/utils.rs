@@ -3,11 +3,10 @@ pub mod genes;
 use std::{error::Error, fmt::Display};
 
 use auth::{AuthResult, UserDb};
-use dna::Location;
 use loctogene::{Level, Loctogene, TSSRegion};
 
 use rocket::{response::status::BadRequest, serde::json::Json};
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Serialize)]
 pub struct MessageResp {
@@ -41,48 +40,49 @@ where
 }
 
 #[derive(Serialize)]
-pub struct DNAJsonData {
-    pub location: String,
+pub struct DNA {
+    pub location: dna::Location,
     pub dna: String,
 }
 
 #[derive(Serialize)]
+pub struct DNAResp {
+    pub assembly: String,
+    pub seqs: Vec<DNA>,
+}
+
+#[derive(Serialize)]
 pub struct DNAJsonResp {
-    pub data: DNAJsonData,
+    pub data: DNAResp,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub struct AnnotationBody {
-    locations: Vec<Location>,
-}
+// pub fn parse_loc_from_route(
+//     chr: Option<&str>,
+//     start: Option<u32>,
+//     end: Option<u32>,
+//     default_chr: &str,
+//     default_start: u32,
+//     default_end: u32,
+// ) -> Result<dna::Location, String> {
+//     let c: &str = match chr {
+//         Some(c) => c,
+//         None => default_chr,
+//     };
 
-pub fn parse_loc_from_route(
-    chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
-    default_chr: &str,
-    default_start: u32,
-    default_end: u32,
-) -> Result<dna::Location, String> {
-    let c: &str = match chr {
-        Some(c) => c,
-        None => default_chr,
-    };
+//     let s: u32 = match start {
+//         Some(s) => s,
+//         None => default_start,
+//     };
 
-    let s: u32 = match start {
-        Some(s) => s,
-        None => default_start,
-    };
+//     let e: u32 = match end {
+//         Some(e) => e,
+//         None => default_end,
+//     };
 
-    let e: u32 = match end {
-        Some(e) => e,
-        None => default_end,
-    };
+//     let loc: Location = Location::new(c, s, e)?;
 
-    let loc: Location = Location::new(c, s, e)?;
-
-    Ok(loc)
-}
+//     Ok(loc)
+// }
 
 // pub fn parse_assembly_from_route(assembly: Option<&str>) -> String {
 //     let a: &str = match assembly {

@@ -8,13 +8,19 @@ use rocket::serde::json::Json;
 use serde::Serialize;
 use serde_json::json;
 
-use super::AnnotationBody;
+use crate::DnaBody;
+
+ 
+#[derive(Serialize)]
+pub struct LocationGenes {
+    pub location: Location,
+    pub features: Vec<GenomicFeature>,
+}
 
 #[derive(Serialize)]
 pub struct GenesJsonData {
-    pub location: Location,
     pub level: Level,
-    pub features: Vec<GenomicFeature>,
+    pub features: Vec<LocationGenes>,
 }
 
 #[derive(Serialize)]
@@ -39,7 +45,7 @@ pub struct AnnotationJsonResp {
 
 pub fn make_gene_json(
     annotatedb: &Annotate,
-    body: &Json<AnnotationBody>,
+    body: &Json<DnaBody>,
     closest_n: u16,
 ) -> Result<String, Box<dyn Error>> {
     let l = body.locations.len();
@@ -107,7 +113,7 @@ pub fn make_gene_json(
 
 pub fn make_gene_table(
     annotatedb: &Annotate,
-    body: &Json<AnnotationBody>,
+    body: &Json<DnaBody>,
     closest_n: u16,
     ts: &TSSRegion,
 ) -> Result<String, Box<dyn Error>> {

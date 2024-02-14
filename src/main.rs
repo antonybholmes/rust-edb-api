@@ -4,26 +4,29 @@ extern crate rocket;
 use dotenvy::dotenv;
 use genes::Annotate;
 
-use dna::{Format, Location, RepeatMask, DNA};
+use dna::{DnaDb, Format, Location, RepeatMask};
 use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
 use rocket::{
     http::ContentType,
     serde::{json::Json, Serialize},
 };
- 
+use serde::Deserialize;
 
 use std::env::consts::ARCH;
 use utils::{
     create_genesdb, create_userdb,
-    genes::{GenesJsonData, GenesJsonResp},
-    parse_bool, parse_closest_n_from_route, parse_level_from_route, parse_loc_from_route,
-    parse_output_from_query, parse_tss_from_query, unwrap_bad_req, AnnotationBody, DNAJsonData,
-    DNAJsonResp, ErrorResp, JsonResult,
+    genes::{GenesJsonData, GenesJsonResp, LocationGenes},
+    parse_bool, parse_closest_n_from_route, parse_level_from_route,
+    parse_output_from_query, parse_tss_from_query, unwrap_bad_req, DNAJsonResp, DNAResp, ErrorResp,
+    JsonResult,
 };
 
 use auth::{
-    jwt::{create_jwt, JWTResp}, AuthError, AuthUser, LoginUser, UserDb
+    jwt::{create_jwt, JWTResp, JWT},
+    AuthError, AuthUser, LoginUser, UserDb,
 };
+
+use crate::utils::DNA;
 
 mod tests;
 mod utils;
@@ -50,56 +53,63 @@ fn about_route() -> Json<AboutJsonResp> {
     })
 }
 
-pub fn register(user: &Json<LoginUser>) -> Result<String, AuthError> {
+pub fn register(user: &LoginUser) -> Result<String, AuthError> {
     let userdb: UserDb = create_userdb()?;
 
     let auth_user: AuthUser = userdb.create_user(user)?;
 
-    let jwt: String =  create_jwt(&auth_user)?;
+    let jwt: String = create_jwt(&auth_user)?;
 
     Ok(jwt)
 }
 
 #[post("/register", format = "application/json", data = "<user>")]
 pub fn register_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
- 
     let jwt: String = unwrap_bad_req(register(&user))?;
 
     Ok(Json(JWTResp { jwt }))
 }
 
-pub fn login(user: &Json<LoginUser>) -> Result<String, AuthError> {
+pub fn login(user: &LoginUser) -> Result<String, AuthError> {
     let userdb: UserDb = create_userdb()?;
 
     let auth_user: AuthUser = userdb.find_user_by_email(user)?;
 
-    let jwt: String =  create_jwt(&auth_user)?;
+    let jwt: String = create_jwt(&auth_user)?;
 
     Ok(jwt)
 }
 
 #[post("/login", format = "application/json", data = "<user>")]
 pub fn login_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
- 
     let jwt: String = unwrap_bad_req(login(&user))?;
 
     Ok(Json(JWTResp { jwt }))
 }
 
-#[get("/<assembly>?<chr>&<start>&<end>&<format>&<mask>&<rev>&<comp>")]
+#[derive(Serialize, Deserialize)]
+pub struct DnaBody {
+    locations: Vec<dna::Location>,
+}
+
+#[post(
+    "/<assembly>?<format>&<mask>&<rev>&<comp>",
+    format = "application/json",
+    data = "<data>"
+)]
 fn dna_route(
     assembly: &str,
-    chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
     rev: Option<&str>,
     comp: Option<&str>,
     format: Option<&str>,
     mask: Option<&str>,
+    data: Json<DnaBody>,
+    jwt: Result<JWT, AuthError>,
 ) -> JsonResult<DNAJsonResp> {
-    let loc: dna::Location = unwrap_bad_req(utils::parse_loc_from_route(
-        chr, start, end, "chr1", 100000, 100100,
-    ))?;
+    // test if key valid
+    let _key: JWT = unwrap_bad_req(jwt)?;
+
+    let loc: &Location = data.locations.get(0).unwrap();
 
     let r: bool = match rev {
         Some(r) => parse_bool(r),
@@ -129,57 +139,76 @@ fn dna_route(
         None => RepeatMask::None,
     };
 
-    let dna_db: DNA = DNA::new(&format!("data/dna/{}", assembly));
+    let dna_db: DnaDb = DnaDb::new(&format!("data/dna/{}", assembly));
 
-    let dna: String = unwrap_bad_req(dna_db.get_dna(&loc, r, rc, &format, &repeat_mask))?;
+    let mut seqs: Vec<DNA> = Vec::<DNA>::with_capacity(data.locations.len());
+
+    for location in data.locations.iter() {
+        let dna: String = unwrap_bad_req(dna_db.dna(&loc, r, rc, &format, &repeat_mask))?;
+
+        seqs.push(DNA {
+            location: location.clone(),
+            dna,
+        })
+    }
 
     Ok(Json(DNAJsonResp {
-        data: DNAJsonData {
-            location: loc.to_string(),
-            dna,
+        data: DNAResp {
+            assembly: assembly.to_string(),
+            seqs,
         },
     }))
 }
 
-#[get("/within/<assembly>?<chr>&<start>&<end>&<level>")]
+#[post(
+    "/within/<assembly>?<level>",
+    format = "application/json",
+    data = "<data>"
+)]
 fn within_genes_route(
     assembly: &str,
-    chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
     level: Option<&str>,
+    data: Json<DnaBody>,
+    jwt: Result<JWT, AuthError>,
 ) -> JsonResult<GenesJsonResp> {
-    let location: dna::Location = unwrap_bad_req(parse_loc_from_route(
-        chr, start, end, "chr3", 187721381, 187745468,
-    ))?;
+    let _key: JWT = unwrap_bad_req(jwt)?;
 
     let l: Level = parse_level_from_route(level);
 
     let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
 
-    let features: Vec<GenomicFeature> = unwrap_bad_req(genesdb.get_genes_within(&location, l))?;
+    let mut all_features = Vec::<LocationGenes>::with_capacity(data.locations.len());
+
+    for location in data.locations.iter() {
+        let features: Vec<GenomicFeature> = unwrap_bad_req(genesdb.get_genes_within(&location, l))?;
+
+        all_features.push(LocationGenes {
+            location: location.clone(),
+            features,
+        })
+    }
 
     Ok(Json(GenesJsonResp {
         data: GenesJsonData {
-            location,
             level: l,
-            features,
+            features: all_features,
         },
     }))
 }
 
-#[get("/closest/<assembly>?<chr>&<start>&<end>&<n>&<level>")]
+#[post(
+    "/closest/<assembly>?<n>&<level>",
+    format = "application/json",
+    data = "<data>"
+)]
 fn closest_genes_route(
     assembly: &str,
-    chr: Option<&str>,
-    start: Option<u32>,
-    end: Option<u32>,
     n: Option<u16>,
     level: Option<&str>,
+    data: Json<DnaBody>,
+    jwt: Result<JWT, AuthError>,
 ) -> JsonResult<GenesJsonResp> {
-    let location: Location = unwrap_bad_req(parse_loc_from_route(
-        chr, start, end, "chr3", 187721381, 187745468,
-    ))?;
+    let _key: JWT = unwrap_bad_req(jwt)?;
 
     let closest_n: u16 = parse_closest_n_from_route(n);
 
@@ -187,14 +216,22 @@ fn closest_genes_route(
 
     let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
 
-    let features: Vec<GenomicFeature> =
-        unwrap_bad_req(genesdb.get_closest_genes(&location, closest_n, l))?;
+    let mut all_features = Vec::<LocationGenes>::with_capacity(data.locations.len());
+
+    for location in data.locations.iter() {
+        let features: Vec<GenomicFeature> =
+            unwrap_bad_req(genesdb.get_closest_genes(&location, closest_n, l))?;
+
+        all_features.push(LocationGenes {
+            location: location.clone(),
+            features,
+        })
+    }
 
     Ok(Json(GenesJsonResp {
         data: GenesJsonData {
-            location,
             level: l,
-            features,
+            features: all_features,
         },
     }))
 }
@@ -205,7 +242,7 @@ fn annotation_route(
     n: Option<u16>,
     tss: Option<&str>,
     output: Option<&str>,
-    body: Json<AnnotationBody>,
+    body: Json<DnaBody>,
 ) -> Result<(ContentType, String), ErrorResp> {
     //let a: String = parse_assembly_from_route(assembly);
 
@@ -240,10 +277,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .mount("/", routes![about_route, register_route, login_route])
-        .mount("/v1/dna", routes![dna_route])
-        .mount(
-            "/v1/genes",
-            routes![within_genes_route, closest_genes_route],
-        )
-        .mount("/v1/annotation", routes![annotation_route])
+        .mount("/dna", routes![dna_route])
+        .mount("/genes", routes![within_genes_route, closest_genes_route])
+        .mount("/annotation", routes![annotation_route])
 }

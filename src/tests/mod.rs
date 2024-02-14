@@ -9,10 +9,10 @@ fn test_dna() {
 
     println!("{}", loc);
 
-    let dna_db: dna::DNA = dna::DNA::new("data/dna/hg19");
+    let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
     let res: Result<String, String> =
-        dna_db.get_dna(&loc, true, true, &dna::Format::None, &dna::RepeatMask::None);
+        dna_db.dna(&loc, true, true, &dna::Format::None, &dna::RepeatMask::None);
 
     assert!(!res.is_err());
 
@@ -31,9 +31,9 @@ fn test_uc_dna() {
 
     println!("{}", loc);
 
-    let dna_db: dna::DNA = dna::DNA::new("data/dna/hg19");
+    let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> = dna_db.get_dna(
+    let res: Result<String, String> = dna_db.dna(
         &loc,
         true,
         true,
@@ -58,10 +58,10 @@ fn test_rep_mask_n_dna() {
 
     println!("{}", loc);
 
-    let dna_db: dna::DNA = dna::DNA::new("data/dna/hg19");
+    let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
     let res: Result<String, String> =
-        dna_db.get_dna(&loc, true, true, &dna::Format::Upper, &dna::RepeatMask::N);
+        dna_db.dna(&loc, true, true, &dna::Format::Upper, &dna::RepeatMask::N);
 
     assert!(!res.is_err());
 
@@ -80,9 +80,9 @@ fn test_rep_mask_lower_dna() {
 
     println!("{}", loc);
 
-    let dna_db: dna::DNA = dna::DNA::new("data/dna/hg19");
+    let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> = dna_db.get_dna(
+    let res: Result<String, String> = dna_db.dna(
         &loc,
         true,
         true,
