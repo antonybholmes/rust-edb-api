@@ -141,7 +141,7 @@ fn dna_route(
 
     let dna_db: DnaDb = DnaDb::new(&format!("data/dna/{}", assembly));
 
-    let mut seqs: Vec<DNA> = Vec::<DNA>::with_capacity(data.locations.len());
+    let mut seqs: Vec<DNA> = Vec::with_capacity(data.locations.len());
 
     for location in data.locations.iter() {
         let dna: String = unwrap_bad_req(dna_db.dna(&loc, r, rc, &format, &repeat_mask))?;
@@ -177,7 +177,7 @@ fn within_genes_route(
 
     let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
 
-    let mut all_features = Vec::<LocationGenes>::with_capacity(data.locations.len());
+    let mut all_features: Vec<LocationGenes> = Vec::with_capacity(data.locations.len());
 
     for location in data.locations.iter() {
         let features: Vec<GenomicFeature> = unwrap_bad_req(genesdb.get_genes_within(&location, l))?;
@@ -216,7 +216,7 @@ fn closest_genes_route(
 
     let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
 
-    let mut all_features = Vec::<LocationGenes>::with_capacity(data.locations.len());
+    let mut all_features: Vec<LocationGenes> = Vec::with_capacity(data.locations.len());
 
     for location in data.locations.iter() {
         let features: Vec<GenomicFeature> =
