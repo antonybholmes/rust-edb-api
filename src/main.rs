@@ -277,7 +277,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .mount("/", routes![about_route, register_route, login_route])
-        .mount("/dna", routes![dna_route])
-        .mount("/genes", routes![within_genes_route, closest_genes_route])
-        .mount("/annotation", routes![annotation_route])
+        .mount("/auth/dna", routes![dna_route])
+        .mount("/auth/genes", routes![within_genes_route, closest_genes_route])
+        .mount("/auth/annotation", routes![annotation_route])
 }
