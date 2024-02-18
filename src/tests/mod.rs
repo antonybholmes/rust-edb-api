@@ -80,7 +80,7 @@ fn test_rep_mask_lower_dna() {
 
     assert!(!res.is_err());
 
-    let loc: dna::Location = res.unwrap();
+    let loc   = res.unwrap();
 
     println!("{}", loc);
 
@@ -96,7 +96,7 @@ fn test_rep_mask_lower_dna() {
 
     assert!(!res.is_err());
 
-    let dna: String = res.unwrap();
+    let dna = res.unwrap();
 
     println!("test {}", dna);
 }

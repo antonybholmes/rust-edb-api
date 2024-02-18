@@ -6,8 +6,6 @@ use serde::Serialize;
 use serde_json::json;
 
 use super::dna::DnaBody;
-
-
  
 #[derive(Serialize)]
 pub struct LocationGenes {

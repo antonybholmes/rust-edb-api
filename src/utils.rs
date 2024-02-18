@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use auth::{AuthResult, UserDb};
+
 
 use rocket::{response::status::BadRequest, serde::json::Json};
 use serde::Serialize;
@@ -103,6 +103,4 @@ pub fn parse_output_from_query(output: Option<&str>) -> String {
     };
 }
 
-pub fn create_userdb() -> AuthResult<UserDb> {
-    return UserDb::new("data/users.db");
-}
+

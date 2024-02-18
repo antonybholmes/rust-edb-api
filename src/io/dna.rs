@@ -1,15 +1,15 @@
+use dna::{DnaSeq, Location};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
 pub struct DnaBody {
-    pub locations: Vec<dna::Location>,
+    pub locations: Vec<Location>,
 }
-
 
 #[derive(Serialize)]
 pub struct DnaResp {
     pub assembly: String,
-    pub seqs: Vec<dna::DNA>,
+    pub seqs: Vec<DnaSeq>,
 }
 
 #[derive(Serialize)]
