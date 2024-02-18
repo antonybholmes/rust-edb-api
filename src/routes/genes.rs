@@ -5,7 +5,7 @@ use rocket::{http::ContentType, serde::json::Json};
 use serde::Serialize;
 use serde_json::json;
 
-use crate::utils::{parse_closest_n_from_route, parse_output_from_query, unwrap_bad_req, ErrorResp,JsonResult};
+use super::{parse_closest_n_from_route, parse_output_from_query, unwrap_bad_req, ErrorResp,JsonResult};
 
 use auth::{
     jwt::Jwt,

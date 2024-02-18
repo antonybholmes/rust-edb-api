@@ -7,7 +7,7 @@ use auth::{
     AuthResult,
 };
 
-use crate::utils::{parse_bool, unwrap_bad_req, JsonResult};
+use super::{parse_bool, unwrap_bad_req, JsonResult};
 
 #[derive(Serialize, Deserialize)]
 pub struct DnaBody {

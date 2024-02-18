@@ -7,28 +7,33 @@ use std::env::consts::ARCH;
 
 mod routes;
 mod tests;
-mod utils;
 
-const NAME: &'static str = "edb-api";
-const VERSION: &'static str = "1.0.0";
-const COPYRIGHT: &'static str = "Copyright (C) 2024 Antony Holmes";
+ 
 
 #[derive(Serialize)]
 pub struct AboutJsonResp {
-    pub name: &'static str,
-    pub version: &'static str,
-    pub copyright: &'static str,
-    pub arch: &'static str,
+    pub name: String,
+    pub version: String,
+    pub copyright: String,
 }
 
 #[get("/about")]
 fn about_route() -> Json<AboutJsonResp> {
     Json(AboutJsonResp {
-        name: NAME,
-        version: VERSION,
-        copyright: COPYRIGHT,
-        arch: ARCH,
+        name: sys::env::str("NAME"),
+        version: sys::env::str("VERSION"),
+        copyright: sys::env::str("COPYRIGHT"),
     })
+}
+
+#[derive(Serialize)]
+pub struct InfoResp {
+    pub arch: &'static str,
+}
+
+#[get("/info")]
+fn info_route() -> Json<InfoResp> {
+    Json(InfoResp { arch: ARCH })
 }
 
 #[launch]
@@ -38,7 +43,7 @@ fn rocket() -> _ {
     sys::env::ls();
 
     rocket::build()
-        .mount("/", routes![about_route])
+        .mount("/", routes![about_route, info_route])
         .mount(
             "/users",
             routes![routes::users::register_route, routes::users::login_route],
