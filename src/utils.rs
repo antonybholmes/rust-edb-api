@@ -1,9 +1,6 @@
-pub mod genes;
-
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
 
 use auth::{AuthResult, UserDb};
-use loctogene::{Level, Loctogene, TSSRegion};
 
 use rocket::{response::status::BadRequest, serde::json::Json};
 use serde::Serialize;
@@ -37,23 +34,6 @@ where
         Ok(x) => Ok(x),
         Err(err) => Err(bad_req(err.to_string())),
     }
-}
-
-#[derive(Serialize)]
-pub struct DNA {
-    pub location: dna::Location,
-    pub dna: String,
-}
-
-#[derive(Serialize)]
-pub struct DNAResp {
-    pub assembly: String,
-    pub seqs: Vec<DNA>,
-}
-
-#[derive(Serialize)]
-pub struct DNAJsonResp {
-    pub data: DNAResp,
 }
 
 // pub fn parse_loc_from_route(
@@ -103,38 +83,10 @@ pub fn parse_bool(b: &str) -> bool {
     }
 }
 
-pub fn parse_level_from_route(level: Option<&str>) -> Level {
-    return match level {
-        Some(l) => Level::from(l),
-        None => Level::Gene,
-    };
-}
-
 pub fn parse_closest_n_from_route(n: Option<u16>) -> u16 {
     return match n {
         Some(nn) => nn,
         None => 5,
-    };
-}
-
-pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
-    return match tss {
-        Some(ts) => {
-            let tokens: Vec<&str> = ts.split(",").collect();
-
-            let s: u32 = match tokens[0].parse::<u32>() {
-                Ok(s) => s,
-                Err(_) => return TSSRegion::default(),
-            };
-
-            let e: u32 = match tokens[1].parse::<u32>() {
-                Ok(s) => s,
-                Err(_) => return TSSRegion::default(),
-            };
-
-            TSSRegion::new(s, e)
-        }
-        None => TSSRegion::default(),
     };
 }
 
@@ -149,10 +101,6 @@ pub fn parse_output_from_query(output: Option<&str>) -> String {
         }
         None => "json".to_owned(),
     };
-}
-
-pub fn create_genesdb(assembly: &str) -> Result<Loctogene, Box<dyn Error>> {
-    return Loctogene::new(&format!("data/loctogene/{}.db", assembly));
 }
 
 pub fn create_userdb() -> AuthResult<UserDb> {

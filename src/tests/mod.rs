@@ -1,7 +1,11 @@
 #[cfg(test)]
+use dna::Location;
+
 #[test]
 fn test_dna() {
-    let res: Result<dna::Location, String> = dna::Location::parse("chr1:100000-100100");
+    
+
+    let res   =  Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -11,7 +15,7 @@ fn test_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> =
+    let res =
         dna_db.dna(&loc, true, true, &dna::Format::None, &dna::RepeatMask::None);
 
     assert!(!res.is_err());
@@ -23,7 +27,7 @@ fn test_dna() {
 
 #[test]
 fn test_uc_dna() {
-    let res: Result<dna::Location, String> = dna::Location::parse("chr1:100000-100100");
+    let res =  Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -33,7 +37,7 @@ fn test_uc_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> = dna_db.dna(
+    let res = dna_db.dna(
         &loc,
         true,
         true,
@@ -50,7 +54,7 @@ fn test_uc_dna() {
 
 #[test]
 fn test_rep_mask_n_dna() {
-    let res: Result<dna::Location, String> = dna::Location::parse("chr1:100000-100100");
+    let res  =  Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -60,7 +64,7 @@ fn test_rep_mask_n_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> =
+    let res  =
         dna_db.dna(&loc, true, true, &dna::Format::Upper, &dna::RepeatMask::N);
 
     assert!(!res.is_err());
@@ -72,7 +76,7 @@ fn test_rep_mask_n_dna() {
 
 #[test]
 fn test_rep_mask_lower_dna() {
-    let res: Result<dna::Location, String> = dna::Location::parse("chr1:100000-100100");
+    let res  = Location::parse("chr1:100000-100100");
 
     assert!(!res.is_err());
 
@@ -82,7 +86,7 @@ fn test_rep_mask_lower_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res: Result<String, String> = dna_db.dna(
+    let res = dna_db.dna(
         &loc,
         true,
         true,

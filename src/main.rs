@@ -2,23 +2,28 @@
 extern crate rocket;
 
 use dotenvy::dotenv;
-use genes::Annotate;
 
 use dna::{DnaDb, Format, Location, RepeatMask};
-use loctogene::{self, GenomicFeature, Level, Loctogene, TSSRegion};
+use genes::{
+    annotate::Annotate,
+    loctogene::{GenomicFeature, Level, LoctogeneDb, TSSRegion},
+};
+use io::{
+    dna::{DnaJsonResp, DnaResp},
+    genes::{
+        create_genesdb, parse_level_from_route, parse_tss_from_query, GenesJsonData, GenesJsonResp, LocationGenes
+    },
+};
 use rocket::{
     http::ContentType,
     serde::{json::Json, Serialize},
 };
-use serde::Deserialize;
 
 use std::env::consts::ARCH;
+
 use utils::{
-    create_genesdb, create_userdb,
-    genes::{GenesJsonData, GenesJsonResp, LocationGenes},
-    parse_bool, parse_closest_n_from_route, parse_level_from_route,
-    parse_output_from_query, parse_tss_from_query, unwrap_bad_req, DNAJsonResp, DNAResp, ErrorResp,
-    JsonResult,
+    create_userdb, parse_bool, parse_closest_n_from_route, parse_output_from_query, unwrap_bad_req,
+    ErrorResp, JsonResult,
 };
 
 use auth::{
@@ -26,8 +31,9 @@ use auth::{
     AuthError, AuthUser, LoginUser, UserDb,
 };
 
-use crate::utils::DNA;
+use io::dna::DnaBody;
 
+mod io;
 mod tests;
 mod utils;
 
@@ -87,11 +93,6 @@ pub fn login_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
     Ok(Json(JWTResp { jwt }))
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct DnaBody {
-    locations: Vec<dna::Location>,
-}
-
 #[post(
     "/<assembly>?<format>&<mask>&<rev>&<comp>",
     format = "application/json",
@@ -105,7 +106,7 @@ fn dna_route(
     mask: Option<&str>,
     data: Json<DnaBody>,
     jwt: Result<JWT, AuthError>,
-) -> JsonResult<DNAJsonResp> {
+) -> JsonResult<DnaJsonResp> {
     // test if key valid
     let _key: JWT = unwrap_bad_req(jwt)?;
 
@@ -141,19 +142,19 @@ fn dna_route(
 
     let dna_db: DnaDb = DnaDb::new(&format!("data/dna/{}", assembly));
 
-    let mut seqs: Vec<DNA> = Vec::with_capacity(data.locations.len());
+    let mut seqs: Vec<dna::DNA> = Vec::with_capacity(data.locations.len());
 
     for location in data.locations.iter() {
         let dna: String = unwrap_bad_req(dna_db.dna(&loc, r, rc, &format, &repeat_mask))?;
 
-        seqs.push(DNA {
+        seqs.push(dna::DNA {
             location: location.clone(),
             dna,
         })
     }
 
-    Ok(Json(DNAJsonResp {
-        data: DNAResp {
+    Ok(Json(DnaJsonResp {
+        data: DnaResp {
             assembly: assembly.to_string(),
             seqs,
         },
@@ -168,19 +169,20 @@ fn dna_route(
 fn within_genes_route(
     assembly: &str,
     level: Option<&str>,
-    data: Json<DnaBody>,
+    data: Json<io::dna::DnaBody>,
     jwt: Result<JWT, AuthError>,
-) -> JsonResult<GenesJsonResp> {
+) -> JsonResult<io::genes::GenesJsonResp> {
     let _key: JWT = unwrap_bad_req(jwt)?;
 
     let l: Level = parse_level_from_route(level);
 
-    let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
+    let genesdb: LoctogeneDb = unwrap_bad_req(create_genesdb(assembly))?;
 
     let mut all_features: Vec<LocationGenes> = Vec::with_capacity(data.locations.len());
 
     for location in data.locations.iter() {
-        let features: Vec<GenomicFeature> = unwrap_bad_req(genesdb.get_genes_within(&location, l))?;
+        let features: Vec<GenomicFeature> =
+            unwrap_bad_req(genesdb.get_genes_within(&location, &l))?;
 
         all_features.push(LocationGenes {
             location: location.clone(),
@@ -212,9 +214,9 @@ fn closest_genes_route(
 
     let closest_n: u16 = parse_closest_n_from_route(n);
 
-    let l: loctogene::Level = parse_level_from_route(level);
+    let l: Level = parse_level_from_route(level);
 
-    let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
+    let genesdb: LoctogeneDb = unwrap_bad_req(create_genesdb(assembly))?;
 
     let mut all_features: Vec<LocationGenes> = Vec::with_capacity(data.locations.len());
 
@@ -252,14 +254,14 @@ fn annotation_route(
 
     let output: String = parse_output_from_query(output);
 
-    let genesdb: Loctogene = unwrap_bad_req(create_genesdb(assembly))?;
+    let genesdb = unwrap_bad_req(create_genesdb(assembly))?;
 
-    let annotatedb: Annotate = Annotate::new(genesdb, ts, closest_n);
+    let annotatedb = Annotate::new(genesdb, ts, closest_n);
 
     let d: String = unwrap_bad_req(if output == "text" {
-        utils::genes::make_gene_table(&annotatedb, &body, closest_n, &ts)
+        io::genes::make_gene_table(&annotatedb, &body, closest_n, &ts)
     } else {
-        utils::genes::make_gene_json(&annotatedb, &body, closest_n)
+        io::genes::make_gene_json(&annotatedb, &body, closest_n)
     })?;
 
     let content_type: ContentType = if output == "text" {
@@ -278,6 +280,9 @@ fn rocket() -> _ {
     rocket::build()
         .mount("/", routes![about_route, register_route, login_route])
         .mount("/auth/dna", routes![dna_route])
-        .mount("/auth/genes", routes![within_genes_route, closest_genes_route])
+        .mount(
+            "/auth/genes",
+            routes![within_genes_route, closest_genes_route],
+        )
         .mount("/auth/annotation", routes![annotation_route])
 }

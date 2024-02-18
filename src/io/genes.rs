@@ -1,14 +1,12 @@
-use std::error::Error;
-
-use genes::{Annotate, ClosestGene, GeneAnnotation};
 use csv::WriterBuilder;
 use dna::Location;
-use loctogene::{GenomicFeature, Level, TSSRegion};
+use genes::{annotate::{Annotate, ClosestGene, GeneAnnotation}, loctogene::{GenesResult, GenomicFeature, Level, LoctogeneDb, TSSRegion}};
 use rocket::serde::json::Json;
 use serde::Serialize;
 use serde_json::json;
 
-use crate::DnaBody;
+use super::dna::DnaBody;
+
 
  
 #[derive(Serialize)]
@@ -43,11 +41,43 @@ pub struct AnnotationJsonResp {
     pub data: GeneAnnotationTable,
 }
 
+pub fn create_genesdb(assembly: &str) -> GenesResult<LoctogeneDb> {
+   return LoctogeneDb::new(&format!("data/loctogene/{}.db", assembly));
+}
+
+pub fn parse_level_from_route(level: Option<&str>) -> Level {
+    return match level {
+        Some(l) => Level::from(l),
+        None => Level::Gene,
+    };
+}
+
+pub fn parse_tss_from_query(tss: Option<&str>) -> TSSRegion {
+    return match tss {
+        Some(ts) => {
+            let tokens: Vec<&str> = ts.split(",").collect();
+
+            let s: u32 = match tokens[0].parse::<u32>() {
+                Ok(s) => s,
+                Err(_) => return TSSRegion::default(),
+            };
+
+            let e: u32 = match tokens[1].parse::<u32>() {
+                Ok(s) => s,
+                Err(_) => return TSSRegion::default(),
+            };
+
+            TSSRegion::new(s, e)
+        }
+        None => TSSRegion::default(),
+    };
+}
+
 pub fn make_gene_json(
     annotatedb: &Annotate,
     body: &Json<DnaBody>,
     closest_n: u16,
-) -> Result<String, Box<dyn Error>> {
+) -> GenesResult<String> {
     let l = body.locations.len();
 
     // let mut headers: Vec<String> = Vec::with_capacity(6 + l);
@@ -116,7 +146,7 @@ pub fn make_gene_table(
     body: &Json<DnaBody>,
     closest_n: u16,
     ts: &TSSRegion,
-) -> Result<String, Box<dyn Error>> {
+) -> GenesResult<String> {
     let mut wtr: csv::Writer<Vec<u8>> = WriterBuilder::new().delimiter(b'\t').from_writer(vec![]);
 
     let capacity: usize = 6 + closest_n as usize;
