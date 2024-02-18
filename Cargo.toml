@@ -9,6 +9,7 @@ edition = "2021"
 auth = {path =  "../rust-auth"}
 dna = {path =  "../rust-dna"}
 genes = {path =  "../rust-genes"}
+sys = {path =  "../rust-sys"}
 rocket = {version = "0.5.0", features = ["json"]}
 serde = {version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
@@ -16,3 +17,4 @@ csv = "1.3.0"
 jsonwebtoken = "9.2.0"
 dotenvy = "0.15.7"
 once_cell = "1.19.0"
+handlebars = "5.1.0"

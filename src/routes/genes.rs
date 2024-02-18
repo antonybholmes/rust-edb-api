@@ -1,10 +1,18 @@
 use csv::WriterBuilder;
 use dna::Location;
 use genes::{annotate::{Annotate, ClosestGene, GeneAnnotation}, loctogene::{GenesResult, GenomicFeature, Level, LoctogeneDb, TSSRegion}};
-use rocket::serde::json::Json;
+use rocket::{http::ContentType, serde::json::Json};
 use serde::Serialize;
 use serde_json::json;
 
+use crate::utils::{parse_closest_n_from_route, parse_output_from_query, unwrap_bad_req, ErrorResp,JsonResult};
+
+use auth::{
+    jwt::Jwt,
+    AuthResult,
+};
+
+ 
 use super::dna::DnaBody;
  
 #[derive(Serialize)]
@@ -200,4 +208,117 @@ pub fn make_gene_table(
     let data: String = String::from_utf8(inner)?;
 
     Ok(data)
+}
+
+
+#[post(
+    "/within/<assembly>?<level>",
+    format = "application/json",
+    data = "<data>"
+)]
+pub fn within_genes_route(
+    assembly: &str,
+    level: Option<&str>,
+    data: Json<DnaBody>,
+    jwt: AuthResult<Jwt>,
+) -> JsonResult< GenesJsonResp> {
+    let _key = unwrap_bad_req(jwt)?;
+
+    let l = parse_level_from_route(level);
+
+    let genesdb = unwrap_bad_req(create_genesdb(assembly))?;
+
+    let mut all_features = Vec::with_capacity(data.locations.len());
+
+    for location in data.locations.iter() {
+        let features: Vec<GenomicFeature> =
+            unwrap_bad_req(genesdb.get_genes_within(&location, &l))?;
+
+        all_features.push(LocationGenes {
+            location: location.clone(),
+            features,
+        })
+    }
+
+    Ok(Json(GenesJsonResp {
+        data: GenesJsonData {
+            level: l,
+            features: all_features,
+        },
+    }))
+}
+
+#[post(
+    "/closest/<assembly>?<n>&<level>",
+    format = "application/json",
+    data = "<data>"
+)]
+pub fn closest_genes_route(
+    assembly: &str,
+    n: Option<u16>,
+    level: Option<&str>,
+    data: Json<DnaBody>,
+    jwt: AuthResult<Jwt>,
+) -> JsonResult<GenesJsonResp> {
+    let _key = unwrap_bad_req(jwt)?;
+
+    let closest_n = parse_closest_n_from_route(n);
+
+    let l = parse_level_from_route(level);
+
+    let genesdb = unwrap_bad_req(create_genesdb(assembly))?;
+
+    let mut all_features = Vec::with_capacity(data.locations.len());
+
+    for location in data.locations.iter() {
+        let features: Vec<GenomicFeature> =
+            unwrap_bad_req(genesdb.get_closest_genes(&location, closest_n, l))?;
+
+        all_features.push(LocationGenes {
+            location: location.clone(),
+            features,
+        })
+    }
+
+    Ok(Json(GenesJsonResp {
+        data: GenesJsonData {
+            level: l,
+            features: all_features,
+        },
+    }))
+}
+
+#[post("/annotation/<assembly>?<n>&<tss>&<output>", data = "<body>")]
+pub fn annotation_route(
+    assembly: &str,
+    n: Option<u16>,
+    tss: Option<&str>,
+    output: Option<&str>,
+    body: Json<DnaBody>,
+) -> Result<(ContentType, String), ErrorResp> {
+    //let a: String = parse_assembly_from_route(assembly);
+
+    let closest_n = parse_closest_n_from_route(n);
+
+    let ts = parse_tss_from_query(tss);
+
+    let output = parse_output_from_query(output);
+
+    let genesdb = unwrap_bad_req(create_genesdb(assembly))?;
+
+    let annotatedb = Annotate::new(genesdb, ts, closest_n);
+
+    let d: String = unwrap_bad_req(if output == "text" {
+         make_gene_table(&annotatedb, &body, closest_n, &ts)
+    } else {
+         make_gene_json(&annotatedb, &body, closest_n)
+    })?;
+
+    let content_type: ContentType = if output == "text" {
+        ContentType::Text
+    } else {
+        ContentType::JSON
+    };
+
+    Ok((content_type, d))
 }
