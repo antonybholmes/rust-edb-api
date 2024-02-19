@@ -3,9 +3,7 @@ use dna::Location;
 
 #[test]
 fn test_dna() {
-    
-
-    let res   =  Location::parse("chr1:100000-100100");
+    let res = Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -15,8 +13,7 @@ fn test_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res =
-        dna_db.dna(&loc, true, true, &dna::Format::None, &dna::RepeatMask::None);
+    let res = dna_db.dna(&loc, true, true, &dna::Format::None, &dna::RepeatMask::None);
 
     assert!(!res.is_err());
 
@@ -27,7 +24,7 @@ fn test_dna() {
 
 #[test]
 fn test_uc_dna() {
-    let res =  Location::parse("chr1:100000-100100");
+    let res = Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -54,7 +51,7 @@ fn test_uc_dna() {
 
 #[test]
 fn test_rep_mask_n_dna() {
-    let res  =  Location::parse("chr1:100000-100100");
+    let res = Location::parse("chr1:100000-100100");
 
     //assert!(!res.is_err());
 
@@ -64,8 +61,7 @@ fn test_rep_mask_n_dna() {
 
     let dna_db: dna::DnaDb = dna::DnaDb::new("data/dna/hg19");
 
-    let res  =
-        dna_db.dna(&loc, true, true, &dna::Format::Upper, &dna::RepeatMask::N);
+    let res = dna_db.dna(&loc, true, true, &dna::Format::Upper, &dna::RepeatMask::N);
 
     assert!(!res.is_err());
 
@@ -76,11 +72,11 @@ fn test_rep_mask_n_dna() {
 
 #[test]
 fn test_rep_mask_lower_dna() {
-    let res  = Location::parse("chr1:100000-100100");
+    let res = Location::parse("chr1:100000-100100");
 
     assert!(!res.is_err());
 
-    let loc   = res.unwrap();
+    let loc = res.unwrap();
 
     println!("{}", loc);
 

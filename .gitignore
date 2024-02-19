@@ -16,3 +16,7 @@ Cargo.lock
 data/
 
 .env
+
+logs/
+
+tests.sh

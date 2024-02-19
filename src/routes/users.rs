@@ -1,13 +1,12 @@
-use auth::{jwt::{create_jwt, JWTResp}, AuthResult, AuthUser, LoginUser, UserDb};
+use super::{unwrap_bad_req, JsonResult};
+use auth::{
+    jwt::{create_jwt, JWTResp},
+    AuthResult, AuthUser, LoginUser, UserDb,
+};
 use once_cell::sync::Lazy;
 use rocket::serde::json::Json;
-use super::{unwrap_bad_req,JsonResult};
 
-
-
-static USER_DB: Lazy<UserDb> = Lazy::new(|| 
-    UserDb::new("data/users.db").unwrap()
-    );
+static USER_DB: Lazy<UserDb> = Lazy::new(|| UserDb::new("data/users.db"));
 
 pub fn register(user: &LoginUser) -> AuthResult<String> {
     //let userdb: UserDb = create_userdb()?;
@@ -42,4 +41,3 @@ pub fn login_route(user: Json<LoginUser>) -> JsonResult<JWTResp> {
 
     Ok(Json(JWTResp { jwt }))
 }
-
